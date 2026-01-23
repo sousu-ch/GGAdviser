@@ -1,0 +1,282 @@
+/* ------------------------------------------------------------- 
+   GGAdviser サイドバー & オーバーレイテーマ (v4-2 統合)
+   ------------------------------------------------------------- */
+
+/* 1. サイドバーの骨格レイアウト (GameUI.js) */
+.gg-meta-panel-container {
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.gg-scroll-area {
+  flex: 1 !important;
+  overflow-y: auto !important;
+}
+
+/* 2. チャット & メタコンテナ */
+#gg-chat-container,
+#gg-meta-container {
+  width: 100%;
+}
+
+/* 3. 入力エリア (GameUI.js) */
+.gg-input-block {
+  flex-shrink: 0;
+  width: 100%;
+  background: #f0f4f9;
+  padding: 16px 16px 20px 16px;
+  box-sizing: border-box;
+  z-index: 100;
+}
+
+.gg-input-wrapper {
+  background: #ffffff;
+  border-radius: 26px;
+  display: flex;
+  align-items: flex-end;
+  padding: 8px 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+  pointer-events: auto;
+  transition: background-color 0.2s;
+  border: 1px solid #e0e0e0;
+}
+
+.gg-input-textarea {
+  flex: 1;
+  border: none !important;
+  outline: none !important;
+  font-size: 15px;
+  padding: 0;
+  resize: none;
+  max-height: 200px;
+  font-family: "Google Sans", Roboto, sans-serif;
+  background: transparent;
+  line-height: 1.5;
+  color: #1f1f1f;
+  min-height: 24px;
+  margin: 0;
+  box-shadow: none !important;
+  overflow-y: hidden;
+}
+
+.gg-send-btn {
+  background: none !important;
+  border: none !important;
+  cursor: pointer;
+  color: #444746;
+  padding: 6px;
+  margin-left: 8px;
+  margin-bottom: -2px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.2s;
+}
+
+.gg-send-btn:hover {
+  background-color: rgba(68, 71, 70, 0.08);
+}
+
+.gg-send-btn:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+/* [NEW] 送信ボタンの停止モード */
+.gg-send-btn.gg-stop-mode {
+  color: #d93025 !important; /* エラー/停止の赤 */
+}
+
+/* 4. タブボタン (SplitViewManager.js) */
+/* 共有ベースは既に ui_components.css に .gg-tab-btn として存在するが、
+   ここではインラインから派生したスタイルを洗練させる */
+.gg-tab-btn {
+  background: transparent !important;
+  border: none !important;
+  color: #888;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.gg-tab-btn.active {
+  color: #fff !important;
+  border-bottom-color: #4285f4 !important;
+}
+
+/* 5. 画像オーバーレイ (GridOverlayManager.js) */
+#gg-left-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: zoom-out;
+}
+
+#gg-overlay-layout-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+  gap: 8px;
+  position: relative;
+}
+
+#gg-overlay-topbar {
+  width: 100%;
+  flex: 20;
+  min-height: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 10001;
+}
+
+.gg-overlay-thumb-wrapper {
+  position: relative;
+  height: 100%;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  container-type: size;
+}
+
+.gg-overlay-thumb {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  background-color: transparent;
+  box-sizing: border-box;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+/* サムネイルの状態は CSS に移動 */
+.gg-overlay-thumb.inactive {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  filter: brightness(0.6);
+}
+
+.gg-overlay-thumb.active {
+  border: 3px solid #4285f4;
+  filter: brightness(1.1);
+}
+
+.gg-overlay-thumb:hover {
+  filter: brightness(1);
+}
+
+/* コンパスラベル (ゴーストモードの美学) */
+.gg-compass-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: transparent;
+  color: #ffffff;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 35cqh;
+  text-shadow: 0px 0px 3px #000000;
+  opacity: 0.3;
+  padding: 0;
+  border-radius: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* オーバーレイメイン画像コンテナ */
+.gg-overlay-img-container {
+  flex: 80;
+  min-height: 0;
+  width: 100%;
+  background: transparent;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.gg-image-wrapper {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+}
+
+.gg-overlay-main-img {
+  pointer-events: auto;
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  cursor: crosshair;
+}
+
+/* オーバーレイ内のボタン */
+.gg-overlay-control-btn {
+  position: absolute;
+  padding: 5px 10px;
+  font-size: 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 1000;
+  pointer-events: auto;
+  transition: background-color 0.2s;
+  background-color: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.7);
+  border: none;
+}
+
+.gg-overlay-control-btn:hover {
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+}
+
+.gg-grid-toggle-btn {
+  top: 10px;
+  left: 10px;
+}
+
+.gg-grid-toggle-btn.on {
+  color: white;
+}
+
+.gg-jump-btn {
+  top: 10px;
+  right: 10px;
+  padding: 5px 12px;
+  color: white;
+}
+
+/* マルチハイライトレイヤー */
+#gg-multi-highlight-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  pointer-events: none;
+}

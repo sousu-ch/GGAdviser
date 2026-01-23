@@ -1,0 +1,58 @@
+/* Google Maps Street View 高信頼性クリーンビュー CSS */
+
+/* 1. API を安定させるため、body 内のすべてを視覚的に隠すが、DOM はそのままにする */
+body {
+  visibility: hidden !important;
+  background-color: black !important;
+  overflow: hidden !important;
+}
+
+/* 2. ビューアとキャンバスを明示的に表示する */
+.gg-pano-target,
+.gg-pano-target canvas,
+.gg-pano-target div {
+  visibility: visible !important;
+}
+
+/* 3. ビューアを全画面に強制的に表示し、最前面に維持する */
+.gg-pano-target {
+  display: block !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 2147483647 !important;
+  background-color: black !important;
+}
+
+/* 4. ビューア内のすべての Street View アーティファクトを積極的に隠す */
+.gg-pano-target .gmnoprint,
+.gg-pano-target .gm-style-cc,
+.gg-pano-target .gm-style-mtc,
+.gg-pano-target .gm-svpc,
+.gg-pano-target .gm-iv-address,
+.gg-pano-target .gm-style-gc,
+.gg-pano-target .google-maps-link,
+.gg-pano-target a[href^="https://maps.google.com/maps"],
+.gg-pano-target a[href^="https://www.google.com/intl"],
+.gg-pano-target button {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* 5. 動的なトーストやステータスメッセージ (「画像が公開されていません」など) を隠す */
+.gg-pano-target div[role="status"],
+.gg-pano-target div[style*="background-color: white"],
+.gg-pano-target .gm-err-container {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* 6. 翻訳バナーを隠す (ビューアの外側) */
+.goog-te-banner-frame,
+#goog-gt-tt,
+.goog-tooltip {
+  display: none !important;
+}

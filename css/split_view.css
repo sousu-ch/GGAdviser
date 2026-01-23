@@ -1,0 +1,80 @@
+/* ------------------------------------------------------------- 
+   GGAdviser 分割ビュー CSS (結果モード)
+   map-making.app に注入される
+   ------------------------------------------------------------- */
+
+/* リサイズ用のルート変数 */
+:root {
+  --map-width: 70%;
+}
+
+body.gg-split-mode:not(.gg-ui-disabled) {
+  display: block !important; /* flex をリセット */
+  position: relative !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  overscroll-behavior: none; /* ブラウザのスワイプナビゲーションを防ぐ */
+}
+
+/* ベースラッパー: レイアウトフローを壊さないように、デフォルトではスタイルを持たせないため、ルールセットは省略 */
+
+/* 有効状態: 分割ビュースタイルを適用 */
+body.gg-split-mode:not(.gg-ui-disabled) #gg-main-wrapper {
+  /* フローティングレイアウト: 幅は 70% マイナスギャップ、高さはマージンを考慮 */
+  width: calc(var(--map-width) - 24px) !important;
+  max-width: calc(var(--map-width) - 24px) !important;
+  min-width: 0 !important;
+
+  height: calc(
+    100vh - 24px
+  ) !important; /* 全高マイナス上下マージン */
+
+  /* デフォルトマージン + 必要に応じて微調整 */
+  margin: 12px 0 12px 12px !important; /* 上、右(ギャップ0)、下、左 */
+
+  overflow: hidden !important;
+  z-index: 1;
+  transform: translateZ(0);
+}
+
+/* 2. スプリッター */
+#gg-splitter {
+  position: fixed;
+  left: var(--map-width);
+  top: 0;
+  width: 10px;
+  height: 100%;
+  background: #333;
+  cursor: col-resize;
+  z-index: 99999;
+  border-left: 1px solid #555;
+  border-right: 1px solid #555;
+}
+
+#gg-splitter:hover,
+#gg-splitter.dragging {
+  background: #448aff; /* アクセントカラー */
+}
+
+/* 3. Gemini パネル */
+#gg-gemini-panel {
+  position: fixed;
+  left: calc(var(--map-width) + 10px);
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: #eff;
+  z-index: 99998;
+}
+
+
+
+/* ------------------------------------------------------------- 
+   無効モードの上書き (UI トグルが OFF の場合)
+   ------------------------------------------------------------- */
+body.gg-ui-disabled #gg-gemini-panel,
+body.gg-ui-disabled #gg-splitter {
+  display: none !important;
+}

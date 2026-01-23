@@ -1,0 +1,241 @@
+/* ゲーム UI (サイドバー統合) */
+
+/* メタパネルコンテナ */
+#gg-meta-panel {
+  background: #ffffff; /* [Step 3-2-I] ライトテーマ修正 */
+  color: #3c4043;
+  font-family: "Google Sans", Roboto, sans-serif;
+  scrollbar-width: thin;
+  scrollbar-color: #dadce0 #ffffff;
+}
+
+#gg-meta-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+#gg-meta-panel::-webkit-scrollbar-track {
+  background: #ffffff;
+}
+
+#gg-meta-panel::-webkit-scrollbar-thumb {
+  background: #dadce0;
+  border-radius: 3px;
+}
+
+/* グローバルセクション (コンパクト) */
+.gg-global-section.compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  background: #e8eaed; /* [Step 3-2-K] グレー 200 */
+  border-radius: 8px;
+  margin-bottom: 12px;
+  /* border-bottom: 1px solid #333; */ /* レガシーな境界線を削除 */
+  align-items: center;
+}
+
+.gg-info-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff; /* ホワイトカード */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  color: #3c4043;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 16px;
+  /* color: #e8eaed; */ /* [Step 3-2-Fix] 競合を削除 */
+  transition: background 0.2s;
+}
+
+.gg-info-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.gg-icon {
+  font-size: 18px;
+  line-height: 0;
+  display: flex;
+  align-items: center;
+  opacity: 0.8; /* 控えめな外観 */
+  margin-right: 2px;
+}
+
+.gg-icon svg {
+  fill: #a0a0a0; /* ベースアイコン色 */
+}
+
+.gg-text {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ディバイダー */
+.gg-meta-divider {
+  display: none !important; /* [Step 3-2-Fix] レガシーな黒いバーを非表示 */
+}
+
+/* ローカルヒントリスト */
+.gg-clue-list-ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.gg-clue-li {
+  padding: 12px 14px;
+  /* border-bottom: 1px solid #222; */ /* レガシーなリスト線を削除 */
+  border-left: 3px solid transparent; /* 確認/選択のために保持 */
+  cursor: pointer;
+
+  /* [Step 3-2-Recovery] カードの外観を復元 */
+  background-color: #ffffff;
+  border-radius: 8px;
+  margin-bottom: 8px; /* 分離を強制 */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: 1px solid transparent; /* 境界線ハイライトの準備 */
+
+  transition:
+    background 0.1s,
+    border-left-color 0.1s,
+    transform 0.2s;
+}
+
+.gg-clue-li:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.gg-clue-li.selected {
+  background: rgba(66, 133, 244, 0.1);
+  border-left-color: #4285f4;
+}
+
+.gg-clue-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.gg-clue-idx {
+  background: #333;
+  color: #aaa;
+  font-size: 13px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.gg-clue-title {
+  color: #202124;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.gg-clue-body {
+  font-size: 16px;
+  color: #3c4043;
+  line-height: 1.6;
+  padding-left: 0; /* 端またはヘッダーに合わせる？ フラットのままにする */
+}
+
+/* タブアニメーション */
+.gg-tab-btn.active {
+  text-shadow: 0 0 10px rgba(66, 133, 244, 0.4);
+}
+
+/* 国旗アイコンスタイル */
+.gg-flag-icon {
+  height: 16px;
+  width: auto;
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 2px;
+}
+/* [STEP 2-3] インタラクティブなヒントスタイル */
+.gg-clue-body.masked {
+  filter: blur(5px);
+  user-select: none;
+  pointer-events: none;
+  opacity: 0.5;
+  transition:
+    filter 0.5s ease,
+    opacity 0.5s ease;
+}
+
+.gg-clue-body.revealed {
+  filter: blur(0);
+  opacity: 1;
+  animation: flash-reveal 0.5s ease;
+}
+
+@keyframes flash-reveal {
+  0% {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.gg-clue-li.gg-clue-hover {
+  border-left: 3px solid #ff6d00 !important;
+  background-color: rgba(255, 109, 0, 0.2) !important;
+  box-shadow: inset 5px 0 10px rgba(255, 109, 0, 0.1);
+}
+
+/* [PHASE 5] 洗練されたアクションボタン */
+.gg-evidence-btn,
+.gg-quiz-side-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #252528;
+  color: #aaa;
+  border: 1px solid #3c4043;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.gg-evidence-btn:hover,
+.gg-quiz-side-btn:hover {
+  background: #303134;
+  color: #fff;
+  border-color: #5f6368;
+}
+
+.gg-quiz-side-btn.active {
+  background: rgba(66, 133, 244, 0.15);
+  color: #8ab4f8;
+  border-color: rgba(66, 133, 244, 0.4);
+}
+
+.gg-quiz-side-btn.active:hover {
+  background: rgba(66, 133, 244, 0.25);
+  border-color: #8ab4f8;
+}
+
+.gg-evidence-btn span,
+.gg-quiz-side-btn span {
+  font-size: 13px;
+}
+
+.gg-clue-coord {
+  background: #333;
+  color: #ff6d00;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: auto;
+}
+
+/* 古いヘッダーボタンスタイルを削除 */
