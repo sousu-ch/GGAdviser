@@ -1,0 +1,86 @@
+{
+  "manifest_version": 3,
+  "name": "GGAdviser",
+  "version": "1.0.0",
+  "description": "Geoguessrのプレイを分析し、Geminiと連携して場所特定のアドバイスをリアルタイムで提供するAIコーチングツールです。",
+  "externally_connectable": {
+    "matches": ["https://www.geoguessr.com/*"]
+  },
+  "host_permissions": [
+    "https://*.google.com/*",
+    "https://*.google.co.jp/*",
+    "https://gemini.google.com/*",
+    "https://map-making.app/*",
+    "https://www.geoguessr.com/*"
+  ],
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "storage",
+    "unlimitedStorage"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.geoguessr.com/*"],
+      "js": ["content_scripts/utils/constants.js", "content_scripts/utils/prompts.js", "content_scripts/utils/ToastManager.js", "content_scripts/utils/PromptBuilder.js", "content_scripts/strategies/DataExtractionStrategy.js", "content_scripts/strategies/InterceptorStrategy.js", "content_scripts/strategies/NextDataStrategy.js", "content_scripts/geoguesser.js"]
+    },
+    {
+      "matches": ["https://gemini.google.com/*"],
+      "js": [
+          "content_scripts/utils/constants.js",
+          "content_scripts/utils/prompts.js",
+          "content_scripts/utils/StateManager.js",
+          "content_scripts/utils/PromptBuilder.js",
+          "content_scripts/modules/ResponseParser.js",
+          "content_scripts/gemini.js"
+        ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://map-making.app/*"],
+      "js": ["content_scripts/utils/constants.js", "content_scripts/utils/prompts.js", "content_scripts/utils/StateManager.js", "content_scripts/utils/ToastManager.js", "content_scripts/modules/PanoBridge.js", "content_scripts/modules/ResizerEngine.js", "content_scripts/modules/GridRenderer.js", "content_scripts/modules/GridInteractionHandler.js", "content_scripts/modules/GridOverlayManager.js", "content_scripts/modules/HeaderControlManager.js", "content_scripts/modules/MessageRenderer.js", "content_scripts/modules/GeminiService.js", "content_scripts/modules/GameUI.js", "content_scripts/modules/SplitViewManager.js", "content_scripts/api_viewer.js"],
+      "css": ["css/split_view.css", "css/game_mode.css", "css/ui_components.css", "css/sidebar_theme.css"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://map-making.app/*"],
+      "js": ["content_scripts/utils/constants.js", "content_scripts/map_extractor.js", "content_scripts/inject_main.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "content_scripts/inject_main.js",
+        "content_scripts/gg_interceptor.js",
+        "css/clean_view.css",
+        "css/split_view.css",
+        "css/layout_fixer.css",
+        "css/ui_components.css",
+        "css/sidebar_theme.css"
+      ],
+      "matches": ["https://map-making.app/*", "https://www.geoguessr.com/*"]
+    }
+  ]
+}

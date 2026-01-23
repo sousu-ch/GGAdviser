@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <title>GGAdviser 設定</title>
+    <style>
+      :root {
+        --primary-color: #4f46e5;
+        --primary-hover: #4338ca;
+        --bg-color: #f9fafb;
+        --card-bg: #ffffff;
+        --text-main: #111827;
+        --text-muted: #6b7280;
+        --border-color: #e5e7eb;
+      }
+
+      body {
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        margin: 0;
+        padding: 40px 20px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .container {
+        max-width: 800px;
+        width: 100%;
+      }
+
+      header {
+        margin-bottom: 32px;
+        text-align: center;
+      }
+
+      h1 {
+        font-size: 2rem;
+        font-weight: 800;
+        margin: 0;
+        background: linear-gradient(to right, var(--primary-color), #ec4899);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        box-shadow:
+          0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        padding: 32px;
+        margin-bottom: 24px;
+        border: 1px solid var(--border-color);
+      }
+
+      .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .form-group {
+        margin-bottom: 24px;
+      }
+
+      label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 8px;
+        color: var(--text-main);
+      }
+
+      textarea,
+      input[type="text"] {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-family: inherit;
+        box-sizing: border-box;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
+      }
+
+      textarea:focus,
+      input[type="text"]:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      }
+
+      textarea {
+        height: 300px;
+        resize: vertical;
+        line-height: 1.5;
+      }
+
+      .hint {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 8px;
+        line-height: 1.4;
+      }
+
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 8px;
+      }
+
+      button {
+        padding: 10px 24px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+      }
+
+      .btn-primary {
+        background-color: var(--primary-color);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: var(--primary-hover);
+        transform: translateY(-1px);
+      }
+
+      .btn-secondary {
+        background-color: #f3f4f6;
+        color: #374151;
+      }
+
+      .btn-secondary:hover {
+        background-color: #e5e7eb;
+      }
+
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+      }
+
+      .global-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        margin-top: 40px;
+        padding-top: 24px;
+        border-top: 1px dashed var(--border-color);
+      }
+
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .status-msg {
+        font-size: 0.875rem;
+        margin-top: 16px;
+        padding: 10px;
+        border-radius: 6px;
+        display: none;
+        text-align: center;
+      }
+
+      .status-success {
+        background-color: #ecfdf5;
+        color: #065f46;
+        display: block;
+      }
+
+      .status-error {
+        background-color: #fef2f2;
+        color: #991b1b;
+        display: block;
+        border: 1px solid #fecaca;
+      }
+
+      code {
+        background: #f3f4f6;
+        padding: 2px 4px;
+        border-radius: 4px;
+        font-size: 90%;
+        color: #ef4444;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>GGAdviser 詳細設定</h1>
+      </header>
+
+      <div class="card">
+        <div class="section-header">
+          <div class="section-title" style="margin-bottom: 0">📍 地図設定</div>
+          <button id="reset-map-btn" class="btn-secondary btn-sm">
+            地図設定を初期化
+          </button>
+        </div>
+        <div class="form-group">
+          <label for="map-url">Result Map URL (map-making.app)</label>
+          <input
+            type="text"
+            id="map-url"
+            placeholder="https://map-making.app/maps/XXXXXX (設定必須)"
+          />
+          <p class="hint">
+            分析結果を表示する際に使用する map-making.app
+            のマップURLを入力してください。
+          </p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-header">
+          <div class="section-title" style="margin-bottom: 0">
+            ✍️ プロンプトテンプレート
+          </div>
+          <button id="reset-prompt-btn" class="btn-secondary btn-sm">
+            プロンプトを初期化
+          </button>
+        </div>
+        <div class="form-group">
+          <label for="prompt-template">Gemini プロンプト</label>
+          <textarea id="prompt-template"></textarea>
+          <p class="hint">
+            利用可能なプレースホルダ: <code>{{lat}}</code> (緯度),
+            <code>{{lng}}</code> (経度), <code>{{date}}</code> (撮影時期),
+            <code>{{url}}</code> (Google Maps URL),
+            <code>{{address}}</code> (元のタイトル)
+          </p>
+        </div>
+      </div>
+
+      <div class="global-actions">
+        <button
+          id="save-btn"
+          class="btn-primary"
+          style="padding: 14px 40px; font-size: 1.1rem"
+        >
+          すべての変更を保存する
+        </button>
+        <div
+          id="status"
+          class="status-msg"
+          style="width: 100%; max-width: 400px; margin-top: 0"
+        ></div>
+      </div>
+    </div>
+    <script src="content_scripts/utils/constants.js"></script>
+    <script src="content_scripts/utils/prompts.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>
