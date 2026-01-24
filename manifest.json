@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GGAdviser",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Geoguessrのプレイを分析し、Geminiと連携して場所特定のアドバイスをリアルタイムで提供するAIコーチングツールです。",
   "externally_connectable": {
     "matches": ["https://www.geoguessr.com/*"]

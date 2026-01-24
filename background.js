@@ -281,18 +281,17 @@ async function _openOrActivateGemini(data) {
   if (data && data.text) {
     const listener = (tid, changeInfo, tab) => {
       if (tid === targetTab.id && changeInfo.status === "complete") {
-        // Appページであることを確認 (リダイレクト除外)
-        if (tab.url && tab.url.includes("/app")) {
-          chrome.tabs.onUpdated.removeListener(listener);
-          
-          // ロード完了後、わずかに待ってから送信 (500ms)
-          setTimeout(() => {
-            chrome.tabs.sendMessage(tid, {
-              action: "PASTE_PROMPT",
-              text: data.text
-            }).catch(e => {});
-          }, 500);
-        }
+        // メモ: changeInfo.status === "complete" の時点で URL チェックを厳密にしすぎると失敗することがあるため
+        // tabId が一致し、ロード完了した事実を信頼して注入を試みる。
+        chrome.tabs.onUpdated.removeListener(listener);
+        
+        // ロード完了後、わずかに待ってから送信 (500ms)
+        setTimeout(() => {
+          chrome.tabs.sendMessage(tid, {
+            action: "CMD_INJECT_DATA",
+            data: null 
+          }).catch(e => {});
+        }, 500);
       }
     };
     chrome.tabs.onUpdated.addListener(listener);

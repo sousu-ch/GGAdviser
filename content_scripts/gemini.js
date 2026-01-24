@@ -73,41 +73,45 @@
   }
   window.__GG_GEMINI_INITIALIZED = true;
 
-  // バックグラウンドからデータをコンシュームするためのポーリングロジック
-  let checkInterval = null;
-  function startPolling() {
-    if (checkInterval) clearInterval(checkInterval);
+  // バックグラウンドからの明示的な注入コマンドを待機 (プッシュ型)
+  if (chrome.runtime && chrome.runtime.onMessage) {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      if (request.action === "CMD_INJECT_DATA") {
+        // データペイロードが直接送られてくる場合と、ストレージから読む場合に対応
+        const data = request.data || null;
 
-    checkInterval = setInterval(checkFn, 1000);
+        if (data) {
+          executeInjection(data);
+          sendResponse({ status: "injeciton_started" });
+        } else {
+          // ペイロードがない場合はストレージを確認 (後方互換またはバックアップ)
+          chrome.storage.local.get(GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA, (res) => {
+            if (res && res[GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA]) {
+              executeInjection(res[GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA]);
+            }
+          });
+          sendResponse({ status: "checking_storage" });
+        }
+      }
+    });
   }
 
-  const checkFn = async () => {
-    try {
-      if (!chrome || !chrome.storage || !chrome.storage.local) return;
+  // 初期化時に一度だけストレージを確認 (ポーリングはしない)
+  // これにより、リロード直後の新しいページが自分でデータを取りに行けるようにする
+  // (古いページはすでに初期化済みなので、これを実行しない -> 持ち逃げ防止)
+  function checkStorageOnceOnStart() {
+    if (!chrome || !chrome.storage || !chrome.storage.local) return;
 
-      chrome.storage.local.get(
-        GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA,
-        async (res) => {
-          if (res && res[GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA]) {
-            const data = res[GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA];
-            const inputArea = findInputArea();
-            if (inputArea) {
+    chrome.storage.local.get(GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA, (res) => {
+      if (res && res[GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA]) {
+        const data = res[GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA];
+        // 入力欄が見つかるまで少し待つ必要があるかもしれないが、executeInjection内で待機ロジックがあるため直接呼ぶ
+        executeInjection(data);
+      }
+    });
+  }
 
-              clearInterval(checkInterval);
-              checkInterval = null;
-              await executeInjection(data);
-              setTimeout(startPolling, 3000);
-            }
-          }
-        },
-      );
-    } catch (e) {
-      _error("Polling Error", e);
-      if (checkInterval) clearInterval(checkInterval);
-    }
-  };
-
-  startPolling();
+  checkStorageOnceOnStart();
 
   // 注入処理のメインロジック
   async function executeInjection(data) {
