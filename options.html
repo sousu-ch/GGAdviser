@@ -210,6 +210,57 @@
         <h1>GGAdviser 詳細設定</h1>
       </header>
 
+      <div class="card" id="permission-card">
+        <div class="section-header">
+          <div class="section-title" style="margin-bottom: 0">
+            🔐 権限とプライバシー
+          </div>
+        </div>
+        <div class="form-group">
+          <div
+            id="permission-status-container"
+            style="
+              background: #f3f4f6;
+              padding: 16px;
+              border-radius: 8px;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 12px;
+            "
+          >
+            <div>
+              <div
+                style="font-weight: 600; font-size: 1rem; margin-bottom: 4px"
+              >
+                画面キャプチャ機能
+              </div>
+              <div
+                id="permission-status-text"
+                style="font-size: 0.9rem; color: #6b7280"
+              >
+                状態を確認中...
+              </div>
+            </div>
+            <div id="permission-icon" style="font-size: 1.5rem">❓</div>
+          </div>
+
+          <button
+            id="grant-permission-btn"
+            class="btn-primary"
+            style="width: 100%; display: none"
+          >
+            キャプチャ権限を付与する
+          </button>
+
+          <p class="hint" id="permission-hint">
+            Geoguessr のプレイ画面を分析するには、ブラウザのキャプチャ権限（すべてのサイトへのアクセス）が必要です。
+            <br />
+            ※ 実際のデータ取得は geoguessr.com 等の許可されたサイトでのみ行われます。
+          </p>
+        </div>
+      </div>
+
       <div class="card">
         <div class="section-header">
           <div class="section-title" style="margin-bottom: 0">📍 地図設定</div>

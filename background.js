@@ -590,6 +590,34 @@ async function handleMapReady(tabId, metaData) {
 
   state.lastCaptureStartTime = Date.now();
 
+  // [v1.0.3] 権限チェックを追加
+  let hasPermission = false;
+  try {
+    hasPermission = await new Promise((r) =>
+      chrome.permissions.contains({ origins: ["<all_urls>"] }, r),
+    );
+  } catch (e) {
+    console.error("Permission check failed", e);
+  }
+
+  if (!hasPermission) {
+    chrome.tabs
+      .sendMessage(tabId, {
+        action: "RESTORE_UI_ERROR",
+        data: {
+          title: "キャプチャ権限が必要です",
+          detail:
+            "この機能を利用するには、拡張機能の設定画面でキャプチャ権限を許可してください。\n(設定画面 -> 🔐 権限とプライバシー)",
+        },
+      })
+      .catch(() => {});
+    
+    // 処理状態をリセットして終了
+    state.processing = false;
+    await chrome.storage.local.set({ captureState: null });
+    return;
+  }
+
   try {
     const rawDataUrl = await chrome.tabs.captureVisibleTab(null, {
       format: "jpeg",
@@ -678,10 +706,6 @@ async function finalizeCapture(state) {
   // finalData を軽量に保つためにペイロードから displayImages を削除
   const displayImages = payload.mapData.displayImages;
   delete payload.mapData.displayImages;
-
-  // [DEBUG] ペイロードサイズを確認
-  const jsonStr = JSON.stringify(payload);
-  const sizeMB = (jsonStr.length / 1024 / 1024).toFixed(2);
 
   // タブに通知する前にストレージの書き込みを厳密に待機
   const res = await chrome.storage.local.get("captureLogs");
