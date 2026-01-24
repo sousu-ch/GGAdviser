@@ -244,71 +244,7 @@ function handleMessage(request, sender, sendResponse) {
           // 自動復帰のためにマップタブ ID をオリジンとして保存
           await chrome.storage.local.set({ gg_origin_tab_id: tabId });
         }
-
-        const GEMINI_URL = "https://gemini.google.com/app";
-        const existingTabs = await chrome.tabs.query({
-          url: "https://gemini.google.com/*",
-        });
-
-        if (existingTabs.length > 0) {
-          //最初に見つかったタブを再利用
-          const gTab = existingTabs[0];
-          await chrome.storage.local.set({ gg_gemini_tab_id: gTab.id });
-
-          // 新しいチャットを開始するためにホームへ強制遷移
-          await chrome.tabs.update(gTab.id, { url: GEMINI_URL, active: true });
-
-          if (gTab.windowId !== sender.tab?.windowId) {
-            await chrome.windows.update(gTab.windowId, { focused: true });
-          }
-
-          // リロード完了を待機
-          if (data && data.text) {
-            const listener = (tid, changeInfo) => {
-              if (tid === gTab.id && changeInfo.status === "complete") {
-                chrome.tabs.onUpdated.removeListener(listener);
-                setTimeout(() => {
-                  chrome.tabs
-                    .sendMessage(tid, {
-                      action: "PASTE_PROMPT",
-                      text: data.text,
-                    })
-                    .catch((e) => {});
-                }, 1000); // UIハイドレーション待機
-              }
-            };
-            chrome.tabs.onUpdated.addListener(listener);
-          }
-        } else {
-          // 新しいタブを作成
-          chrome.tabs.create(
-            { url: GEMINI_URL, active: true },
-            async (newTab) => {
-              // 新しいタブの ID を追跡
-              if (newTab && newTab.id) {
-                await chrome.storage.local.set({ gg_gemini_tab_id: newTab.id });
-              }
-
-              // データを注入するための読み込み完了リスナー
-              if (data && data.text) {
-                const listener = (tid, changeInfo) => {
-                  if (tid === newTab.id && changeInfo.status === "complete") {
-                    chrome.tabs.onUpdated.removeListener(listener);
-                    setTimeout(() => {
-                      chrome.tabs
-                        .sendMessage(tid, {
-                          action: "PASTE_PROMPT",
-                          text: data.text,
-                        })
-                        .catch((e) => {});
-                    }, 1000);
-                  }
-                };
-                chrome.tabs.onUpdated.addListener(listener);
-              }
-            },
-          );
-        }
+        await _openOrActivateGemini(data);
         sendResponse({ status: "opening" });
         break;
 
@@ -318,6 +254,69 @@ function handleMessage(request, sender, sendResponse) {
   })();
   return true; // 非同期応答のためにチャンネルを開いたままにする
 }
+
+/**
+ * Gemini タブをスマートにアクティブ化または作成するヘルパー関数
+ * 不要なリロードを防ぎ、貼り付け前にロード完了を確実に待機する。
+ */
+async function _openOrActivateGemini(data) {
+  const GEMINI_APP_URL = "https://gemini.google.com/app";
+  const MATCH_URL_PREFIX = "https://gemini.google.com/";
+
+  // 1. 既存のタブを検索
+  const tabs = await chrome.tabs.query({ url: MATCH_URL_PREFIX + "*" });
+  let targetTab = tabs.length > 0 ? tabs[0] : null;
+
+  // 2. タブの作成または取得
+  if (!targetTab) {
+    targetTab = await chrome.tabs.create({ url: GEMINI_APP_URL, active: true });
+  }
+
+  // ID を保存
+  if (targetTab && targetTab.id) {
+    await chrome.storage.local.set({ gg_gemini_tab_id: targetTab.id });
+  }
+
+  // 3. ロード待機リスナーのセットアップ (リロード/遷移の前にセットする)
+  if (data && data.text) {
+    const listener = (tid, changeInfo, tab) => {
+      if (tid === targetTab.id && changeInfo.status === "complete") {
+        // Appページであることを確認 (リダイレクト除外)
+        if (tab.url && tab.url.includes("/app")) {
+          chrome.tabs.onUpdated.removeListener(listener);
+          
+          // ロード完了後、わずかに待ってから送信 (500ms)
+          setTimeout(() => {
+            chrome.tabs.sendMessage(tid, {
+              action: "PASTE_PROMPT",
+              text: data.text
+            }).catch(e => {});
+          }, 500);
+        }
+      }
+    };
+    chrome.tabs.onUpdated.addListener(listener);
+  }
+
+  // 4. 強制遷移 / リロード
+  // URLが "https://gemini.google.com/app" と完全に一致する場合のみリロード
+  // それ以外 (例: "/app/12345" のような個別チャット) はルートへ遷移させて新規チャットにする
+  const isExactAppRoot = targetTab.url === GEMINI_APP_URL || targetTab.url === GEMINI_APP_URL + "/";
+
+  if (isExactAppRoot) {
+    await chrome.tabs.reload(targetTab.id);
+    await chrome.tabs.update(targetTab.id, { active: true });
+  } else {
+    await chrome.tabs.update(targetTab.id, { url: GEMINI_APP_URL, active: true });
+  }
+
+  // ウィンドウフォーカス
+  if (targetTab.windowId) {
+    chrome.windows.update(targetTab.windowId, { focused: true }).catch(() => {});
+  }
+}
+
+
 
 /**
  * クリーンなキャプチャタブのためのフェーズ 2 初期化を処理する。
