@@ -207,7 +207,10 @@
   <body>
     <div class="container">
       <header>
-        <h1>GGAdviser 詳細設定</h1>
+        <h1>
+          GGAdviser 詳細設定
+          <span id="options-version" style="font-size: 1rem; color: #9ca3af; font-weight: normal; margin-left: 10px;"></span>
+        </h1>
       </header>
 
       <div class="card" id="permission-card">
@@ -254,9 +257,9 @@
           </button>
 
           <p class="hint" id="permission-hint">
-            Geoguessr のプレイ画面を分析するには、ブラウザのキャプチャ権限（すべてのサイトへのアクセス）が必要です。
+            ストリートビュー画像を分析するには、ブラウザのキャプチャ権限（すべてのサイトへのアクセス）が必要です。
             <br />
-            ※ 実際のデータ取得は geoguessr.com 等の許可されたサイトでのみ行われます。
+            ※ 実際のデータ取得は <code>map-making.app</code> 上でのみ行われます。
           </p>
         </div>
       </div>
@@ -317,6 +320,8 @@
           style="width: 100%; max-width: 400px; margin-top: 0"
         ></div>
       </div>
+      
+
     </div>
     <script src="content_scripts/utils/constants.js"></script>
     <script src="content_scripts/utils/prompts.js"></script>

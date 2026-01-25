@@ -88,6 +88,13 @@
     if (grantBtn) {
       grantBtn.onclick = requestPermission;
     }
+
+    // Version Display
+    const manifest = chrome.runtime.getManifest();
+    const versionEl = document.getElementById("options-version");
+    if (versionEl) {
+      versionEl.innerText = `v${manifest.version}`;
+    }
   }
 
   // --- 権限管理ロジック ---
