@@ -120,5 +120,5 @@ body.gg-wide-mode .location-preview__embed .embed-controls * {
 body.gg-wide-mode .map-embed > .embed-controls,
 body.gg-wide-mode .map-embed > [class*="control"] {
   position: absolute !important;
-  z-index: 100 !important;
 }
+  

@@ -645,9 +645,9 @@ class SplitViewManager {
       return;
 
     const map = document.querySelector(".map-embed");
-    const preview = document.querySelector(".location-preview");
 
-    if (!map || !preview) {
+    // マップ要素がなければリトライ（最大10秒）
+    if (!map) {
       if (retryCount < 10) {
         setTimeout(() => this.initWideResizer(retryCount + 1), 1000);
       }
@@ -656,14 +656,21 @@ class SplitViewManager {
 
     const resizer = document.createElement("div");
     resizer.id = "gg-mmapp-resizer";
-    map.parentNode.insertBefore(resizer, preview);
 
+    // ユーザー提案によりシンプル化: 常にマップの直後に配置する
+    map.insertAdjacentElement("afterend", resizer);
+
+    // プレビューiframeの取得（存在すれば）
+    const preview = document.querySelector(".location-preview");
     const mapIframe = map.querySelector("iframe") || map;
+    const previewIframe = preview
+      ? preview.querySelector(".location-preview__embed")
+      : null;
 
     this.resizerVertical = new ResizerEngine({
       handle: resizer,
       direction: "vertical",
-      iframes: [mapIframe, document.querySelector(".location-preview__embed")],
+      iframes: [mapIframe, previewIframe], // previewIframe が null でも ResizerEngine は安全に無視する
       minSize: 150,
       maxOffset: 250,
       onResize: (newHeight) => {

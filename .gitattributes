@@ -1,0 +1,6 @@
+DOCS/ export-ignore
+.agent/ export-ignore
+.gitignore export-ignore
+.antigravityignore export-ignore
+gg_adviser_v*.zip export-ignore
+GGAdviser_v*.zip export-ignore
