@@ -46,7 +46,6 @@ body.gg-wide-mode .map-meta {
   background: #333 !important;
   cursor: ns-resize !important;
   flex: 0 0 8px !important;
-  z-index: 1000 !important;
   border-top: 1px solid #444;
   border-bottom: 1px solid #000;
   transition: background 0.2s;
@@ -75,7 +74,7 @@ body.gg-wide-mode .location-preview {
   overflow: hidden !important;
   border-top: 1px solid #444 !important;
   background: transparent !important;
-  z-index: 200 !important;
+  z-index: 10 !important;
 }
 
 /* パノラマ/埋め込み調整 */

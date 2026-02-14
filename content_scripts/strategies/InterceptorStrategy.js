@@ -84,7 +84,7 @@ class InterceptorStrategy extends DataExtractionStrategy {
         window.removeEventListener("message", handler);
 
         resolve();
-      }, 5000);
+      }, 1000);
     });
   }
 }

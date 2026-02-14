@@ -1,4 +1,4 @@
-# GGAdviser (v1.0.5)
+# GGAdviser (v1.0.6)
 
 Geoguessrのプレイ結果を `map-making.app` と `Gemini` を使って効率的に振り返るためのChrome拡張機能です。
 ![GGAdviser Overview](assets/images/1_hero.jpg)
@@ -7,9 +7,10 @@ Geoguessrのプレイ結果を `map-making.app` と `Gemini` を使って効率�
 
 ## ✨ 主な機能
 
-### 1. ワンクリックで「分析環境」を即座に構築
-Geoguessrの結果画面で **[MAP MARKING APP]** ボタンを押すだけで、正解地点へのジャンプ、AI への接続を瞬時に完了します。
+### 1. 「分析環境」をどこからでも即座に構築
+Geoguessrの **Game画面（途中経過）** や **Result画面（結果一覧）** で追加される **[MAP MARKING APP]** ボタンを押すだけで、正解地点へのジャンプ、AI への接続を瞬時に完了します。
 面倒な座標のコピペは不要。**あとは AI に質問するだけの状態** まで、全てをセットアップします。
+※ Result画面では、現在選択しているラウンドの地点情報が連携されます。
 
 ### 2. 「ストリートビュー + 地図 + AI解説」を1画面に集約
 `map-making.app` の地図、大きなストリートビュー、そして Gemini による分析結果を同時に並べて表示します。
@@ -43,10 +44,13 @@ Geoguessrの結果画面で **[MAP MARKING APP]** ボタンを押すだけで、
 
 ## 💡 使い方とカスタマイズ
 
-### A. 分析を開始する（Geoguessr の終了画面から）
-1. ゲーム終了後のリザルト画面（Breakdown）で、追加された **[MAP MARKING APP]** ボタンをクリックします。
-2. 自動的に `map-making.app` が開き、その地点の正解座標にジャンプします。
-3. 右側パネル上部の **[ANALYZE]** ボタンを押すと、Gemini が開き、画像とプロンプトが自動入力されます。
+### A. 分析を開始する
+以下の画面で **[MAP MARKING APP]** ボタンをクリックしてください。
+- **Game画面**: 「VIEW RESULTS」や「NEXT」ボタンの横
+- **Result画面**: 結果カードの右側（ラウンド選択に連動）
+
+1. ボタンをクリックすると、自動的に `map-making.app` が開き、その地点の正解座標にジャンプします。
+2. 右側パネル上部の **[ANALYZE]** ボタンを押すと、Gemini が開き、画像とプロンプトが自動入力されます。
 
 ![Analyze Button](assets/images/2_analyze.jpg)
 

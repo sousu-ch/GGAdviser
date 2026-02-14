@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GGAdviser",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Geoguessrのプレイを分析し、Geminiと連携して場所特定のアドバイスをリアルタイムで提供するAIコーチングツールです。",
   "externally_connectable": {
     "matches": ["https://www.geoguessr.com/*"]
@@ -43,7 +43,7 @@
   "content_scripts": [
     {
       "matches": ["https://www.geoguessr.com/*"],
-      "js": ["content_scripts/utils/constants.js", "content_scripts/utils/prompts.js", "content_scripts/utils/ToastManager.js", "content_scripts/utils/PromptBuilder.js", "content_scripts/strategies/DataExtractionStrategy.js", "content_scripts/strategies/InterceptorStrategy.js", "content_scripts/strategies/NextDataStrategy.js", "content_scripts/geoguesser.js"]
+      "js": ["content_scripts/utils/constants.js", "content_scripts/utils/prompts.js", "content_scripts/utils/ToastManager.js", "content_scripts/utils/PromptBuilder.js", "content_scripts/strategies/DataExtractionStrategy.js", "content_scripts/strategies/InterceptorStrategy.js", "content_scripts/strategies/NextDataStrategy.js", "content_scripts/strategies/ApiV3Strategy.js", "content_scripts/geoguesser.js"]
     },
     {
       "matches": ["https://gemini.google.com/*"],
