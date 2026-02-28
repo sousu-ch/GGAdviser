@@ -285,7 +285,11 @@ class SplitViewManager {
         onToggleWide: () => this.toggleWide(),
         onReinject: () => {
           this.wrapContent();
-          if (this.wideEnabled) this.initWideResizer();
+          if (this.wideEnabled) {
+            this.initWideResizer();
+          } else {
+            this.initHorizontalResizer();
+          }
         },
         initialState: {
           uiEnabled: this.uiEnabled,
@@ -597,6 +601,15 @@ class SplitViewManager {
     if (this.wideEnabled) {
       body.classList.add("gg-wide-mode");
 
+      // 水平リサイザーを破棄してスタイルをリセット
+      const hResizer = document.getElementById("gg-mmapp-resizer-horizontal");
+      if (hResizer) hResizer.remove();
+      const mainWrapper = document.getElementById(GG_CONSTANTS.SELECTORS.MAIN_WRAPPER_ID);
+      if (mainWrapper) {
+        mainWrapper.style.removeProperty("grid-template-columns");
+        mainWrapper.style.removeProperty("position");
+      }
+
       // レイアウト修正CSSの注入
       const cssFiles = [
         {
@@ -622,6 +635,8 @@ class SplitViewManager {
       this.initWideResizer();
     } else {
       body.classList.remove("gg-wide-mode");
+      
+      // 垂直リサイザーを破棄
       const resizer = document.getElementById("gg-mmapp-resizer");
       if (resizer) resizer.remove();
 
@@ -630,6 +645,8 @@ class SplitViewManager {
         map.style.removeProperty("flex");
         map.style.removeProperty("height");
       }
+      
+      this.initHorizontalResizer();
     }
   }
 
@@ -676,6 +693,77 @@ class SplitViewManager {
       onResize: (newHeight) => {
         map.style.setProperty("flex", `0 0 ${newHeight}px`, "important");
         map.style.setProperty("height", `${newHeight}px`, "important");
+        window.dispatchEvent(new Event("resize"));
+      },
+    });
+  }
+
+  /**
+   * 水平方向（WIDE MODE OFF時）のリサイザーハンドルを注入および初期化する。
+   * .page-map-editor の 2列Gridのギャップ上に absolute で配置する。
+   */
+  initHorizontalResizer(retryCount = 0) {
+    if (this.wideEnabled || document.getElementById("gg-mmapp-resizer-horizontal"))
+      return;
+
+    const mainWrapper = document.getElementById(GG_CONSTANTS.SELECTORS.MAIN_WRAPPER_ID);
+
+    // 親コンテナがなければリトライ（最大10秒）
+    if (!mainWrapper) {
+      if (retryCount < 10) {
+        setTimeout(() => this.initHorizontalResizer(retryCount + 1), 1000);
+      }
+      return;
+    }
+
+    // Grid構築（元の2列を維持し、左カラム幅を変数化)
+    // 左カラムの初期幅の設定（既存のパーセンテージがあれば維持、なければ50%）
+    let initialPercent = 50;
+    const currentCols = window.getComputedStyle(mainWrapper).gridTemplateColumns;
+    if (currentCols && currentCols !== "none") {
+       const colWidths = currentCols.split(" ");
+       if (colWidths.length >= 2) {
+           const leftPx = parseFloat(colWidths[0]);
+           const totalPx = mainWrapper.getBoundingClientRect().width;
+           if (totalPx > 0) {
+               // min 10, max 90
+               initialPercent = Math.max(10, Math.min(90, (leftPx / totalPx) * 100));
+           }
+       }
+    }
+    
+    // コンテナを relative にして absolute セパレーターの基準にする
+    mainWrapper.style.setProperty("position", "relative", "important");
+    
+    document.documentElement.style.setProperty("--left-width", `${initialPercent}%`);
+    // Gridの1列目を「マウス位置 - ギャップの半分(8px)」にすることで、ギャップの中央がマウス位置と完全に一致する
+    mainWrapper.style.setProperty("grid-template-columns", `calc(var(--left-width, 50%) - 8px) minmax(0, 1fr)`, "important");
+
+    const resizer = document.createElement("div");
+    resizer.id = "gg-mmapp-resizer-horizontal";
+    // 左端からの位置（純粋なマウス座標と同じ変数）
+    resizer.style.setProperty("left", `var(--left-width, 50%)`, "important");
+
+    mainWrapper.appendChild(resizer);
+
+    // プレビューiframe等（ドラッグ中のイベント干渉防止用）
+    const map = document.querySelector(".map-embed");
+    const preview = document.querySelector(".location-preview") || document.querySelector(".map-overview");
+    const mapIframe = map ? map.querySelector("iframe") || map : null;
+    const previewIframe = preview
+      ? preview.querySelector("iframe") || preview
+      : null;
+
+    this.resizerHorizontalMMA = new ResizerEngine({
+      handle: resizer,
+      direction: "horizontal",
+      container: mainWrapper, // 相対計算用の基準
+      iframes: [mapIframe, previewIframe], 
+      minSize: 150, 
+      onResize: (newSize, percent) => {
+        if (mainWrapper && percent !== null) {
+          document.documentElement.style.setProperty("--left-width", `${percent}%`);
+        }
         window.dispatchEvent(new Event("resize"));
       },
     });

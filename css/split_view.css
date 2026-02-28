@@ -22,9 +22,9 @@ body.gg-split-mode:not(.gg-ui-disabled) {
 
 /* 有効状態: 分割ビュースタイルを適用 */
 body.gg-split-mode:not(.gg-ui-disabled) #gg-main-wrapper {
-  /* フローティングレイアウト: 幅は 70% マイナスギャップ、高さはマージンを考慮 */
-  width: calc(var(--map-width) - 24px) !important;
-  max-width: calc(var(--map-width) - 24px) !important;
+  /* フローティングレイアウト: 左マージン(12px)と右ギャップ分(8px)を引いて、マップ右端を --map-width - 8px にする */
+  width: calc(var(--map-width) - 20px) !important;
+  max-width: calc(var(--map-width) - 20px) !important;
   min-width: 0 !important;
 
   height: calc(
@@ -42,26 +42,28 @@ body.gg-split-mode:not(.gg-ui-disabled) #gg-main-wrapper {
 /* 2. スプリッター */
 #gg-splitter {
   position: fixed;
-  left: var(--map-width);
+  left: var(--map-width); /* マウス座標（CSS変数）ジャスト */
   top: 0;
-  width: 10px;
+  width: 8px;
   height: 100%;
   background: #333;
   cursor: col-resize;
   z-index: 99999;
-  border-left: 1px solid #555;
-  border-right: 1px solid #555;
+  border-left: 1px solid #444;
+  border-right: 1px solid #000;
+  transition: background 0.2s;
+  transform: translateX(-50%); /* 自身の幅の半分を中心座標から左へ戻す（完全な中央配置） */
 }
 
 #gg-splitter:hover,
 #gg-splitter.dragging {
-  background: #448aff; /* アクセントカラー */
+  background: #555;
 }
 
 /* 3. Gemini パネル */
 #gg-gemini-panel {
   position: fixed;
-  left: calc(var(--map-width) + 10px);
+  left: calc(var(--map-width) + 8px); /* 中心から右へ、ギャップの半分(8px)だけ離した位置 */
   right: 0;
   top: 0;
   bottom: 0;
@@ -77,4 +79,27 @@ body.gg-split-mode:not(.gg-ui-disabled) #gg-main-wrapper {
 body.gg-ui-disabled #gg-gemini-panel,
 body.gg-ui-disabled #gg-splitter {
   display: none !important;
+}
+
+/* ------------------------------------------------------------- 
+   Map Making App 内部の水平セパレーター (WIDE MODE OFF用)
+   ------------------------------------------------------------- */
+#gg-mmapp-resizer-horizontal {
+  position: absolute !important;
+  /* top, bottom, leftはJSで動的に制御 */
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 8px !important;
+  background: #333 !important;
+  cursor: col-resize !important;
+  z-index: 100 !important;
+  border-left: 1px solid #444;
+  border-right: 1px solid #000;
+  transition: background 0.2s;
+  transform: translateX(-50%) !important; /* 中央揃え配置 */
+}
+
+#gg-mmapp-resizer-horizontal:hover,
+#gg-mmapp-resizer-horizontal.resizing {
+  background: #555 !important;
 }

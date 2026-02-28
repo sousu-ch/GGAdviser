@@ -9,6 +9,7 @@ class ResizerEngine {
    * @param {HTMLElement} options.handle - ドラッグに使用する要素。
    * @param {string} options.direction - 'horizontal' または 'vertical'。
    * @param {Function} options.onResize - (newSize, percent) を受け取るコールバック。
+   * @param {HTMLElement} [options.container=null] - 計算の基準となる親コンテナ（水平方向の相対計算用）。
    * @param {Array<HTMLElement>} [options.iframes=[]] - ドラッグ中にポインターイベントを無効にする iframe。
    * @param {number} [options.minSize=150] - ピクセル単位の最小サイズ。
    * @param {number} [options.maxOffset=250] - ビューポートの端からの最大オフセット（ピクセル単位）。
@@ -17,6 +18,7 @@ class ResizerEngine {
     this.handle = options.handle;
     this.direction = options.direction || "horizontal";
     this.onResize = options.onResize;
+    this.container = options.container || null;
     this.iframes = options.iframes || [];
     this.minSize = options.minSize || 150;
     this.maxOffset = options.maxOffset || 250;
@@ -55,11 +57,25 @@ class ResizerEngine {
     let percent = null;
 
     if (this.direction === "horizontal") {
-      percent = (e.clientX / window.innerWidth) * 100;
-      // 水平方向の制約 (Splitter)
-      if (percent < 20) percent = 20;
-      if (percent > 80) percent = 80;
-      newSize = percent;
+      if (this.container) {
+        // コンテナ基準の相対計算 (AIサイドバー等による左シフトの影響を排除)
+        const rect = this.container.getBoundingClientRect();
+        // コンテナ内の相対X座標
+        const relativeX = e.clientX - rect.left;
+        
+        percent = (relativeX / rect.width) * 100;
+        
+        if (percent < 10) percent = 10;
+        if (percent > 90) percent = 90;
+        newSize = percent; // パーセント優先
+      } else {
+        // 従来のウィンドウ基準の計算
+        percent = (e.clientX / window.innerWidth) * 100;
+        // 水平方向の制約 (Splitter)
+        if (percent < 20) percent = 20;
+        if (percent > 80) percent = 80;
+        newSize = percent;
+      }
     } else {
       // 垂直方向 (ワイドモードのリサイザー)
       // リサイズ対象はハンドルの前の要素、または特定のマークアップを想定
