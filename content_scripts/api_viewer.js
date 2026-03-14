@@ -70,14 +70,24 @@ ui.init(async () => {
 
 
 
-    // ユーザー設定が尊重されるように最新のプロンプトテンプレートを取得
-    const res = await chrome.storage.local.get(
+    // ユーザー設定が尊重されるように最新のプロンプトテンプレートと推測データを取得
+    const res = await chrome.storage.local.get([
       GG_CONSTANTS.STORAGE_KEYS.PROMPT_TEMPLATE,
-    );
+      GG_CONSTANTS.STORAGE_KEYS.LAST_GUESS_DATA
+    ]);
+
     data.promptTemplate =
       res[GG_CONSTANTS.STORAGE_KEYS.PROMPT_TEMPLATE] ||
       remotePromptTemplate ||
       "";
+
+    // 推測座標の適用 (Step 2-1)
+    const lastGuessData = res[GG_CONSTANTS.STORAGE_KEYS.LAST_GUESS_DATA];
+    if (lastGuessData) {
+      // GeoGuessr 側で取得した推測データを注入 (Gemini 側で 100m の距離チェックを行う)
+      data.guessLocation = lastGuessData.guessLocation;
+      data.actualLocationFromHistory = lastGuessData.actualLocation;
+    }
 
 
     // キャプチャ前にゴーストモードに入る
@@ -89,7 +99,11 @@ ui.init(async () => {
         type:
           GG_CONSTANTS.ACTIONS?.START_CAPTURE_INPLACE ||
           "START_CAPTURE_INPLACE",
-        data: data,
+        data: {
+          ...data,
+          guessLocation: data.guessLocation,
+          actualLocationFromHistory: data.actualLocationFromHistory
+        },
       },
       (res) => {
         if (chrome.runtime.lastError) {

@@ -4,7 +4,6 @@
 class ApiV3Strategy extends DataExtractionStrategy {
   constructor() {
     super();
-    console.log("GGAdviser: ApiV3Strategy initialized");
   }
 
   /**
@@ -14,13 +13,11 @@ class ApiV3Strategy extends DataExtractionStrategy {
    * @returns {Promise<Object|null>} フォーマットされたラウンドデータまたは null。
    */
   async extract(gameId, roundIndex) {
-    console.log(`[ApiV3Strategy] Extracting for GameID: ${gameId}, Requested RoundIndex: ${roundIndex}`);
     if (!gameId) return null;
 
     try {
       // API v3 エンドポイント
       const url = `/api/v3/games/${gameId}`;
-      console.log(`[ApiV3Strategy] Fetching: ${url}`);
       const response = await fetch(url);
       if (!response.ok) {
         console.warn(`[ApiV3Strategy] Fetch failed: ${response.status} ${response.statusText}`);
@@ -28,7 +25,6 @@ class ApiV3Strategy extends DataExtractionStrategy {
       }
 
       const data = await response.json();
-      console.log("[ApiV3Strategy] API Response received:", data);
       
       // IDの整合性チェック
       if (data.token !== gameId) {
@@ -43,24 +39,27 @@ class ApiV3Strategy extends DataExtractionStrategy {
             ? roundIndex
             : data.rounds.length - 1;
 
-        console.log(`[ApiV3Strategy] Target Final Index: ${targetIdx} (Length: ${data.rounds.length})`);
         const targetRound = data.rounds[targetIdx];
         
         // API v3 では lat/lng 等が round オブジェクトの直下にある
         if (targetRound && targetRound.lat !== undefined) {
-          const formatted = this.formatRoundData(
+          // プレイヤーの推測データを特定 (もし存在すれば)
+          const guess = (data.player && data.player.guesses && data.player.guesses[targetIdx]) 
+            ? data.player.guesses[targetIdx] 
+            : null;
+            
+          // 基本クラスの formatRoundData を非同期で呼び出し
+          return await this.formatRoundData(
             targetRound,
             targetIdx,
-            "API_V3"
+            "API_V3",
+            guess,
+            data
           );
-          // console.log("[ApiV3Strategy] Data found and formatted:", formatted);
-          return formatted;
         } else {
           console.warn("[ApiV3Strategy] Target round has no coordinates.", targetRound);
         }
-    } else {
-        console.warn("[ApiV3Strategy] No rounds found in data.");
-    }
+      }
     } catch (e) {
       console.error("[ApiV3Strategy] Unexpected Error:", e);
     }

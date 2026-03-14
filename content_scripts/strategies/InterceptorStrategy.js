@@ -32,10 +32,17 @@ class InterceptorStrategy extends DataExtractionStrategy {
 
         const targetRound = data.rounds[targetIdx];
         if (targetRound && targetRound.panorama) {
-          return this.formatRoundData(
+          // プレイヤーの推測データを特定 (Duels/Teams対応のため raw data も渡す)
+          const guess = (data.player && data.player.guesses && data.player.guesses[targetIdx])
+            ? data.player.guesses[targetIdx]
+            : null;
+            
+          return await this.formatRoundData(
             targetRound.panorama,
             targetIdx,
             "INTERCEPTED_API",
+            guess,
+            data
           );
         }
       }

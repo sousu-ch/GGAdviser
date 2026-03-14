@@ -29,7 +29,8 @@
       ANALYSIS_START: "GG_ANALYSIS_START"
     },
     STORAGE_KEYS: {
-      PROMPT_TEMPLATE: 'gg_prompt_template'
+      PROMPT_TEMPLATE: 'gg_prompt_template',
+      LAST_GUESS_DATA: 'ggadviser_last_guess_data'
     }
   };
 
@@ -215,6 +216,17 @@
             res[LOCAL_CONSTANTS.STORAGE_KEYS.PROMPT_TEMPLATE] ||
             (typeof GG_PROMPTS !== "undefined" ? GG_PROMPTS.DEFAULT : "");
           data.promptTemplate = template;
+
+          // Guessデータが存在する場合は Map Making App 連携用に Storage に保存しておく
+          if (data.actualLocation && data.guessLocation) {
+            chrome.storage.local.set({
+              [LOCAL_CONSTANTS.STORAGE_KEYS.LAST_GUESS_DATA]: {
+                actualLocation: data.actualLocation,
+                guessLocation: data.guessLocation,
+                timestamp: Date.now()
+              }
+            });
+          }
 
           chrome.runtime.sendMessage(
             { type: "DATA_COLLECTED", payload: data },

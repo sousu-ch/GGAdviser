@@ -547,6 +547,8 @@ async function startSequentialCapture(
     address: payload.address,
     date: payload.date || "",
     promptTemplate: payload.promptTemplate || "",
+    guessLocation: payload.guessLocation || null, // [NEW] プレイヤーの予想座標
+    actualLocationFromHistory: payload.actualLocationFromHistory || null, // [NEW] 距離チェック用の前回の正解座標
     processing: false,
     returnUrl: returnUrl,
   };
@@ -696,6 +698,8 @@ async function finalizeCapture(state) {
     },
     directUrl: state.directUrl || state.lat + "," + state.lng,
     actualLocation: { lat: state.lat, lng: state.lng },
+    guessLocation: state.guessLocation, // [NEW]
+    actualLocationFromHistory: state.actualLocationFromHistory, // [NEW]
     promptTemplate: state.promptTemplate || "",
   };
 

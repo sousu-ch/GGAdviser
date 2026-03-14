@@ -36,10 +36,17 @@ class NextDataStrategy extends DataExtractionStrategy {
 
           const targetRound = game.rounds[targetIdx];
           if (targetRound && targetRound.panorama) {
-            return this.formatRoundData(
+            // プレイヤーの推測データを特定 (Duels時は game オブジェクトも渡す)
+            const guess = (game.player && game.player.guesses && game.player.guesses[targetIdx])
+              ? game.player.guesses[targetIdx]
+              : null;
+              
+            return await this.formatRoundData(
               targetRound.panorama,
               targetIdx,
               "NEXT_DATA",
+              guess,
+              game
             );
           }
         }

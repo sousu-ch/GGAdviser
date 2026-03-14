@@ -172,6 +172,22 @@
       lng: data.actualLocation?.lng || "",
     };
 
+    // --- Guess 座標の注入ロジック (Step 2-2) ---
+    if (data.guessLocation && data.actualLocationFromHistory && data.actualLocation) {
+      const distKm = calculateDistance(
+        data.actualLocation.lat, data.actualLocation.lng,
+        data.actualLocationFromHistory.lat, data.actualLocationFromHistory.lng
+      );
+      
+      // 100m (0.1km) 以内の場合は、GeoGuessr から遷移してきた同一地点の解説リクエストとみなす
+      if (distKm <= 0.1) {
+        replacementData.guess_lat = data.guessLocation.lat;
+        replacementData.guess_lng = data.guessLocation.lng;
+        // 誤差距離（distance）はアドバイスの質に関与しないため提示を廃止（テンプレート維持のため空置換）
+        replacementData.guess_distance = ""; 
+      }
+    }
+
     const templateToUse =
       data.promptTemplate ||
       (typeof GG_PROMPTS !== "undefined" ? GG_PROMPTS.DEFAULT : "");
@@ -179,6 +195,19 @@
       typeof PromptBuilder !== "undefined"
         ? PromptBuilder.build(templateToUse, replacementData)
         : `GeoGuessr analysis for ${replacementData.address}\nURL: ${replacementData.url}`;
+
+    // --- ヘルパー: ハリス（Haversine）公式による2点間の距離計算 (km) ---
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371; // 地球の半径 (km)
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat/2) * Math.sin(dLat/2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
 
     // 3. テキストの挿入
     const finalInputArea = findInputArea();
@@ -215,7 +244,6 @@
       if (parser) {
         setupGenerationObserver();
       }
-      setTimeout(startPolling, 5000);
     }, 2000);
   }
 

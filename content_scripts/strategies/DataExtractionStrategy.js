@@ -36,10 +36,71 @@ class DataExtractionStrategy {
     }
   }
 
-  formatRoundData(pano, roundIndex, source) {
+  async fetchMyId() {
+    if (this._myId) return this._myId;
+    try {
+      // プレイヤー自身のプロフィールを取得してIDを特定する
+      const response = await fetch('/api/v3/profiles/me');
+      if (response.ok) {
+        const profile = await response.json();
+        this._myId = profile.id;
+        return this._myId;
+      }
+    } catch (e) {
+      console.warn("[DataExtractionStrategy] Failed to fetch my ID:", e);
+    }
+    return null;
+  }
+
+  findLocalGuess(rawData, roundIndex, myId) {
+    if (!rawData || !rawData.teams || !myId) {
+      return null;
+    }
+    const targetRoundNumber = roundIndex + 1;
+
+    for (const team of rawData.teams) {
+      if (!team.players) continue;
+      for (const player of team.players) {
+        const pid = player.playerId || player.id;
+        if (pid === myId) {
+          // 該当ラウンドの推測データを検索
+          const guess = player.guesses?.find(g => g.roundNumber === targetRoundNumber);
+          if (guess) {
+            return guess;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  async formatRoundData(pano, roundIndex, source, guess = null, rawData = null) {
     const baseUrl = GG_CONSTANTS.URLS.GOOGLE_MAPS_PANO_BASE;
+    
+    // Helper to extract coordinates from various formats
+    const getCoords = (obj) => {
+      if (!obj) return null;
+      if (typeof obj.lat === "number" && typeof obj.lng === "number") {
+        return { lat: obj.lat, lng: obj.lng };
+      }
+      return null;
+    };
+
+    // If guess is not provided but rawData is (Duels/Teams scenario)
+    let finalGuess = guess;
+    if (!finalGuess && rawData && rawData.teams) {
+      const myId = await this.fetchMyId();
+      finalGuess = this.findLocalGuess(rawData, roundIndex, myId);
+    }
+
+    const actualCoords = getCoords(pano);
+    if (!actualCoords) {
+      console.warn(`[DataExtractionStrategy] Failed to extract actual coordinates from source ${source}:`, pano);
+      return null;
+    }
+
     const params = [
-      `viewpoint=${pano.lat}%2C${pano.lng}`,
+      `viewpoint=${actualCoords.lat}%2C${actualCoords.lng}`,
       `heading=${pano.heading || 0}`,
       `pitch=${pano.pitch || 0}`,
       `fov=180`,
@@ -48,15 +109,17 @@ class DataExtractionStrategy {
     // 精度の高いパノラマIDの優先順位
     let panoId = pano.panoId || pano.pano_id;
     if (panoId) {
-      panoId = this.decodePanoId(panoId); // 存在する場合は16進数をデコード
+      panoId = this.decodePanoId(panoId);
       params.push(`pano=${panoId}`);
     }
 
     const directUrl = `${baseUrl}&${params.join("&")}`;
 
+    const guessCoords = getCoords(finalGuess);
 
     return {
-      actualLocation: { lat: pano.lat, lng: pano.lng },
+      actualLocation: actualCoords,
+      guessLocation: guessCoords,
       directUrl: directUrl,
       source: `${source}_R${roundIndex + 1}`,
       address: `GeoGuessr Round ${roundIndex + 1} (${pano.countryCode ? pano.countryCode.toUpperCase() : "Unknown"})`,

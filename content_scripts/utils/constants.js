@@ -1,4 +1,4 @@
-﻿/**
+/**
  * constants.js
  * 拡張機能全体で使用されるセレクター、URL、イベント名の中央レジストリ。
  * 他のコンテンツスクリプトからアクセスできるように、グローバルオブジェクト GG_CONSTANTS として定義される。
@@ -100,7 +100,8 @@
         MAP_BASE_URL: 'gg_map_base_url',
         UI_ENABLED: 'gg_ui_enabled',
         WIDE_ENABLED: 'gg_wide_enabled',
-        QUIZ_MODE: 'gg_quiz_mode'
+        QUIZ_MODE: 'gg_quiz_mode',
+        LAST_GUESS_DATA: 'ggadviser_last_guess_data'
     },
 
 
