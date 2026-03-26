@@ -4,6 +4,7 @@
  * 旧来の iframe 方式から、直接 DOM を操作する Proxy Chat 方式への移行を統括する。
  */
 class SplitViewManager {
+  static DEBUG = false;
   /**
    * SplitViewManager の初期状態を設定する。
    * デバッグモード、表示設定、および各管理クラスのインスタンス化を行う。
@@ -52,7 +53,7 @@ class SplitViewManager {
    */
 
   _error(msg, err) {
-    console.error(`[GGAdviser:ERROR] ${msg}`, err || "");
+    if (SplitViewManager.DEBUG) console.error(`[GGAdviser:ERROR] ${msg}`, err || "");
   }
 
   /**

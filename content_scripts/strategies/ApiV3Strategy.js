@@ -2,6 +2,7 @@
  * GeoGuessr API v3 を使用してデータを取得する戦略
  */
 class ApiV3Strategy extends DataExtractionStrategy {
+  static DEBUG = false;
   constructor() {
     super();
   }
@@ -20,7 +21,7 @@ class ApiV3Strategy extends DataExtractionStrategy {
       const url = `/api/v3/games/${gameId}`;
       const response = await fetch(url);
       if (!response.ok) {
-        console.warn(`[ApiV3Strategy] Fetch failed: ${response.status} ${response.statusText}`);
+        if (ApiV3Strategy.DEBUG) console.warn(`[ApiV3Strategy] Fetch failed: ${response.status} ${response.statusText}`);
         return null;
       }
 
@@ -28,7 +29,7 @@ class ApiV3Strategy extends DataExtractionStrategy {
       
       // IDの整合性チェック
       if (data.token !== gameId) {
-        console.warn(`[ApiV3Strategy] Game ID mismatch: expected ${gameId}, got ${data.token}`);
+        if (ApiV3Strategy.DEBUG) console.warn(`[ApiV3Strategy] Game ID mismatch: expected ${gameId}, got ${data.token}`);
         return null; 
       }
 
@@ -57,11 +58,11 @@ class ApiV3Strategy extends DataExtractionStrategy {
             data
           );
         } else {
-          console.warn("[ApiV3Strategy] Target round has no coordinates.", targetRound);
+          if (ApiV3Strategy.DEBUG) console.warn("[ApiV3Strategy] Target round has no coordinates.", targetRound);
         }
       }
     } catch (e) {
-      console.error("[ApiV3Strategy] Unexpected Error:", e);
+      if (ApiV3Strategy.DEBUG) console.error("[ApiV3Strategy] Unexpected Error:", e);
     }
 
     return null;

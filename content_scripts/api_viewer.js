@@ -1,7 +1,8 @@
 /**
  * api_viewer.js
- * map-making.app にインジェクトされるコーディネータースクリプト。
- * PanoBridge (マップロジック) と SplitViewManager (UIロジック) をインスタンス化し、初期化する。
+ * Map-making.app にインジェクトされるコーディネータースクリプト。
+ * PanoBridge (マップ座標取得ロジック) と SplitViewManager (UI描画ロジック) を統合管理する。
+ * ブラウザのバックグラウンド、および Gemini コンテンツスクリプトとのメッセージリレーを担当する。
  */
 
 const DEBUG = false;
@@ -38,7 +39,10 @@ window.addEventListener(GG_CONSTANTS.EVENTS.GRID_QUERY, (e) => {
   }
 });
 
-// 分析ハンドラーを使用して UI を初期化
+/**
+ * UI の初期化を行い、分析開始時のメインハンドラーを登録する。
+ * [Phase 5] 複数プロンプト管理および履歴座標（Guessデータ）の統合を含む。
+ */
 ui.init(async () => {
 
 
@@ -70,21 +74,35 @@ ui.init(async () => {
 
 
 
-    // ユーザー設定が尊重されるように最新のプロンプトテンプレートと推測データを取得
+    // 最新のプロンプトリストとアクティブなプロンプトIDを取得
     const res = await chrome.storage.local.get([
-      GG_CONSTANTS.STORAGE_KEYS.PROMPT_TEMPLATE,
+      GG_CONSTANTS.STORAGE_KEYS.ACTIVE_PROMPT_ID,
+      GG_CONSTANTS.STORAGE_KEYS.PROMPTS_CUSTOM,
       GG_CONSTANTS.STORAGE_KEYS.LAST_GUESS_DATA
     ]);
 
-    data.promptTemplate =
-      res[GG_CONSTANTS.STORAGE_KEYS.PROMPT_TEMPLATE] ||
-      remotePromptTemplate ||
-      "";
+    const activePromptId = res[GG_CONSTANTS.STORAGE_KEYS.ACTIVE_PROMPT_ID] || (GG_PROMPTS.PRESETS.length > 0 ? GG_PROMPTS.PRESETS[0].id : null);
+    const customPrompts = res[GG_CONSTANTS.STORAGE_KEYS.PROMPTS_CUSTOM] || {};
+    
+    // プロンプト内容の解決: カスタム編集があれば優先、なければプリセットから取得
+    let promptContent = "";
+    if (activePromptId) {
+      const custom = customPrompts[activePromptId];
+      if (custom && custom.content) {
+        promptContent = custom.content;
+      } else {
+        const preset = (GG_PROMPTS.PRESETS || []).find(p => p.id === activePromptId);
+        if (preset) {
+          promptContent = preset.content;
+        }
+      }
+    }
+
+    data.promptTemplate = promptContent || remotePromptTemplate || "";
 
     // 推測座標の適用 (Step 2-1)
     const lastGuessData = res[GG_CONSTANTS.STORAGE_KEYS.LAST_GUESS_DATA];
     if (lastGuessData) {
-      // GeoGuessr 側で取得した推測データを注入 (Gemini 側で 100m の距離チェックを行う)
       data.guessLocation = lastGuessData.guessLocation;
       data.actualLocationFromHistory = lastGuessData.actualLocation;
     }
@@ -97,8 +115,8 @@ ui.init(async () => {
     chrome.runtime.sendMessage(
       {
         type:
-          GG_CONSTANTS.ACTIONS?.START_CAPTURE_INPLACE ||
-          "START_CAPTURE_INPLACE",
+          GG_CONSTANTS.ACTIONS.START_CAPTURE_INPLACE ||
+          GG_CONSTANTS.ACTIONS.START_CAPTURE_INPLACE,
         data: {
           ...data,
           guessLocation: data.guessLocation,
@@ -126,11 +144,14 @@ ui.init(async () => {
   }
 });
 
-// このタブへのバックグラウンドロギングを有効化
+/**
+ * バックグラウンド、または他のコンテンツスクリプトからこのタブへ送られてくるメッセージのリッスン。
+ * キャプチャ結果の表示、エラー回復、リモートコマンドの処理を担当する。
+ */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "GG_LOG") {
+  if (request.action === GG_CONSTANTS.ACTIONS.GG_LOG) {
 
-  } else if (request.action === "SHOW_RESULT") {
+  } else if (request.action === GG_CONSTANTS.ACTIONS.SHOW_RESULT) {
 
     ui.showResult(request.data);
     // キャプチャしたデータがストレージに準備できている状態で Gemini タブを開く
@@ -138,7 +159,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       action: "OPEN_GEMINI_TAB",
       data: {},
     });
-  } else if (request.action === "RESTORE_UI_ERROR") {
+  } else if (request.action === GG_CONSTANTS.ACTIONS.RESTORE_UI_ERROR) {
 
     ui.setCaptureActive(false);
     const errData = request.data || {};
@@ -147,7 +168,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       errData.detail || errData.message || "An error occurred during sequential capture. Please try again.",
       "error",
     );
-  } else if (request.action === "REMOTE_ANALYZE") {
+  } else if (request.action === GG_CONSTANTS.ACTIONS.REMOTE_ANALYZE) {
 
     remotePromptTemplate = request.promptTemplate;
     if (ui) ui.handleAutoAnalyze(request.url); // 自動検索トリガーを復元
@@ -162,7 +183,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         "warning",
       );
     }
-  } else if (request.action === "SHOW_TOAST") {
+  } else if (request.action === GG_CONSTANTS.ACTIONS.SHOW_TOAST) {
     window.ToastManager.show(
       request.title,
       request.message,
@@ -221,7 +242,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// Iframe にリレーするために Page コンテキストで Grid イベントをリッスンする
+/**
+ * グリッドオーバーレイ上でのユーザーインタラクション（ホバー/クリック）を検知し、
+ * 他のコンポーネント（Gemini 等）へ同期させるためにバックグラウンドへ転送する。
+ */
 window.addEventListener(GG_CONSTANTS.EVENTS.GRID_HOVER, (e) => {
   chrome.runtime.sendMessage({
     action: GG_CONSTANTS.EVENTS.GRID_HOVER,

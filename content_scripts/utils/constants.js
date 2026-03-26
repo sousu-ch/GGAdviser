@@ -8,13 +8,10 @@
     SELECTORS: {
         // Geoguessr UI
         ROUND_ITEM: '[class*="game-summary_playedRound"]',
-        SHELL_MAIN: 'main[id="shell-main"]',
-        GAME_MENU: '[class*="game-menu_gameMenu__"]',
         ANALYZE_BTN_ID: 'gg-analyze-btn',
         NEXT_DATA_ID: '__NEXT_DATA__',
         GAME_SUMMARY_CONTAINER: 'div[class*="buttons_buttons"]',
         SELECTED_ROUND: '[class*="game-summary_selectedRound"]',
-        IN_GAME_ROUND_INDICATOR: '[class*="round-indicator_roundIndicatorContent__"]',
         
         // Map-making.app UI
         MAP_APP_WRAPPER: '.page-map-editor',
@@ -47,8 +44,6 @@
     URLS: {
         GEMINI: "https://gemini.google.com/app",
         MAP_MAKING_BASE: "https://map-making.app",
-        DEFAULT_MAP_ID: "",
-        RESULT_MAP_URL: "",
         GOOGLE_MAPS_PANO_BASE: "https://www.google.com/maps/@?api=1&map_action=pano"
     },
     EVENTS: {
@@ -96,8 +91,12 @@
     },
     STORAGE_KEYS: {
         FINAL_DATA: 'finalData',
-        PROMPT_TEMPLATE: 'gg_prompt_template',
         MAP_BASE_URL: 'gg_map_base_url',
+        MAPS_LIST: 'gg_maps_list',
+        ACTIVE_MAP_ID: 'gg_active_map_id',
+        PROMPTS_LIST: 'gg_prompts_list',
+        PROMPTS_CUSTOM: 'gg_prompts_custom',
+        ACTIVE_PROMPT_ID: 'gg_active_prompt_id',
         UI_ENABLED: 'gg_ui_enabled',
         WIDE_ENABLED: 'gg_wide_enabled',
         QUIZ_MODE: 'gg_quiz_mode',

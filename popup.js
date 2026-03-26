@@ -1,4 +1,8 @@
-// popup.js - GGAdviser ランチャー
+/**
+ * popup.js
+ * GGAdviser のポップアップ UI 制御スクリプト。
+ * 権限状態の表示、アクティブな地図の切り替え、および分析プロンプトの即時切り替えを担当する。
+ */
 
 document.addEventListener("DOMContentLoaded", async () => {
   // --- Version Display ---
@@ -12,7 +16,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const btnRequestPerm = document.getElementById("btn-request-perm");
   const permCard = document.getElementById("permission-card");
 
-  // --- Step 2-1: 権限チェック ---
+  /**
+   * 拡張機能の権限（all_urls）の状態を確認し、UI の警告表示を更新する。
+   */
   const checkPermissions = () => {
     chrome.permissions.contains({ origins: ["<all_urls>"] }, (hasPerm) => {
       if (hasPerm) {
@@ -31,7 +37,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   checkPermissions();
 
-  // オプションを開く共通関数
+  /**
+   * オプション画面を開く共通関数。
+   */
   const openOptions = () => {
     if (chrome.runtime.openOptionsPage) {
       chrome.runtime.openOptionsPage();
@@ -43,46 +51,107 @@ document.addEventListener("DOMContentLoaded", async () => {
   btnRequestPerm.addEventListener("click", openOptions);
   openOptionsBtn.addEventListener("click", openOptions);
 
-  // --- Step 2-2: URL設定 ---
-  const mapUrlInput = document.getElementById("map-url-input");
-  const saveUrlBtn = document.getElementById("save-url-btn");
-  const saveStatus = document.getElementById("save-status");
+  // --- アクティブマップの表示と切り替え機能 ---
+  const mapSelect = document.getElementById("map-select");
+  const saveStatus = document.getElementById("map-select-status");
 
-  // Load
-  chrome.storage.local.get("gg_map_base_url", (res) => {
-    const url = res.gg_map_base_url || "";
-    mapUrlInput.value = url;
-  });
+  // Load Maps
+  chrome.storage.local.get(["gg_maps_list", "gg_active_map_id"], (res) => {
+    const mapsList = res.gg_maps_list || [];
+    const activeMapId = res.gg_active_map_id || null;
 
-  // Input Event (Show save button on change)
-  mapUrlInput.addEventListener("input", () => {
-    saveUrlBtn.style.display = "block";
-    saveStatus.innerText = "";
-  });
+    mapSelect.innerHTML = ""; // Clear existing options
 
-  // Save
-  saveUrlBtn.addEventListener("click", () => {
-    const newUrl = mapUrlInput.value.trim();
-    if (!newUrl) {
-      saveStatus.innerText = "Error: URL cannot be empty";
-      saveStatus.style.color = "#ef4444";
-      return;
-    }
-    if (!newUrl.startsWith("http")) { // Basic check
-      saveStatus.innerText = "Error: Invalid URL";
-      saveStatus.style.color = "#ef4444";
+    if (mapsList.length === 0) {
+      const option = document.createElement("option");
+      option.value = "";
+      option.disabled = true;
+      option.selected = true;
+      option.textContent = "詳細設定から地図を追加してください";
+      mapSelect.appendChild(option);
+      mapSelect.disabled = true;
       return;
     }
 
-    chrome.storage.local.set({ gg_map_base_url: newUrl }, () => {
-      saveStatus.innerText = "Saved!";
-      saveStatus.style.color = "#059669";
-      saveUrlBtn.style.display = "none"; // Hide button after save
-      
-      // Clear status after 2 seconds
-      setTimeout(() => {
-        saveStatus.innerText = "";
-      }, 2000);
+    mapsList.forEach(mapData => {
+      const option = document.createElement("option");
+      option.value = mapData.id;
+      option.textContent = mapData.name;
+      if (mapData.id === activeMapId) {
+        option.selected = true;
+      }
+      mapSelect.appendChild(option);
     });
   });
+
+  // --- プロンプトの表示と切り替え機能 ---
+  const promptSelect = document.getElementById("prompt-select");
+  const promptSaveStatus = document.getElementById("prompt-select-status");
+  const keys = GG_CONSTANTS.STORAGE_KEYS;
+
+  // Load Prompts (Phase 5 Hybrid)
+  chrome.storage.local.get([keys.ACTIVE_PROMPT_ID, keys.PROMPTS_CUSTOM], (res) => {
+    if (!promptSelect) return;
+    
+    const activePromptId = res[keys.ACTIVE_PROMPT_ID] || (GG_PROMPTS.PRESETS.length > 0 ? GG_PROMPTS.PRESETS[0].id : null);
+    const customPrompts = res[keys.PROMPTS_CUSTOM] || {};
+    const presets = GG_PROMPTS.PRESETS || [];
+
+    promptSelect.innerHTML = "";
+
+    if (presets.length === 0) {
+      const option = document.createElement("option");
+      option.value = "";
+      option.disabled = true;
+      option.selected = true;
+      option.textContent = "プロンプトプリセットが見つかりません";
+      promptSelect.appendChild(option);
+      promptSelect.disabled = true;
+      return;
+    }
+
+    presets.forEach(p => {
+      const option = document.createElement("option");
+      option.value = p.id;
+      
+      // カスタム名があれば優先、なければプリセット名
+      const custom = customPrompts[p.id];
+      option.textContent = (custom && custom.name) ? custom.name : p.name;
+      
+      if (p.id === activePromptId) {
+        option.selected = true;
+      }
+      promptSelect.appendChild(option);
+    });
+  });
+
+  // Map Change Event
+  if (mapSelect) {
+    mapSelect.addEventListener("change", (e) => {
+      const selectedId = e.target.value;
+      if (!selectedId) return;
+
+      chrome.storage.local.set({ [GG_CONSTANTS.STORAGE_KEYS.ACTIVE_MAP_ID]: selectedId }, () => {
+        saveStatus.innerText = "変更しました!";
+        setTimeout(() => {
+          saveStatus.innerText = "";
+        }, 2000);
+      });
+    });
+  }
+
+  // Prompt Change Event
+  if (promptSelect) {
+    promptSelect.addEventListener("change", (e) => {
+      const selectedId = e.target.value;
+      if (!selectedId) return;
+
+      chrome.storage.local.set({ [GG_CONSTANTS.STORAGE_KEYS.ACTIVE_PROMPT_ID]: selectedId }, () => {
+        promptSaveStatus.innerText = "切り替えました!";
+        setTimeout(() => {
+          promptSaveStatus.innerText = "";
+        }, 2000);
+      });
+    });
+  }
 });

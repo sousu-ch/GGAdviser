@@ -1,4 +1,5 @@
 (function () {
+  const DEBUG = false;
   const XHR = XMLHttpRequest.prototype;
   const open = XHR.open;
   const send = XHR.send;
@@ -22,7 +23,7 @@
           .catch((e) => {}); // json エラーを無視
       }
     } catch (e) {
-      console.warn("GGAdviser Interceptor Error:", e);
+      if (DEBUG) console.warn("GGAdviser Interceptor Error:", e);
     }
 
     return response;
@@ -44,10 +45,10 @@
 
         window.postMessage({ type: "GG_GAME_DATA_FETCH", data: data }, "*");
       } else {
-        console.warn("GGAdviser Interceptor: Active Fetch Failed", res.status);
+        if (DEBUG) console.warn("GGAdviser Interceptor: Active Fetch Failed", res.status);
       }
     } catch (e) {
-      console.error("GGAdviser Interceptor: Active Fetch Error", e);
+      if (DEBUG) console.error("GGAdviser Interceptor: Active Fetch Error", e);
     }
   });
 

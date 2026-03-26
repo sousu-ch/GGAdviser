@@ -5,6 +5,7 @@
  * 外部CSS（sidebar_theme.css）を利用して UI の装飾を行う。
  */
 class GridOverlayManager {
+  static DEBUG = false;
   /**
    * グリッドオーバーレイの管理クラス。
    * 表示状態、グリッドの可視性、ハイライトされた COORDINATE などを管理する。
@@ -72,7 +73,7 @@ class GridOverlayManager {
   }
 
   _warn(msg) {
-    console.warn(`[GridOverlayManager:WARN] ${msg}`);
+    if (GridOverlayManager.DEBUG) console.warn(`[GridOverlayManager:WARN] ${msg}`);
   }
 
   // レンダリングを委譲するヘルパー
@@ -320,7 +321,7 @@ class GridOverlayManager {
           const meta = res.highResMetadata[resolvedImgIndex];
           if (meta && typeof meta.heading === "number") {
             window.dispatchEvent(
-              new CustomEvent("GG_SYNC_POV", {
+              new CustomEvent(GG_CONSTANTS.EVENTS.SYNC_POV, {
                 detail: { heading: meta.heading, pitch: 0 },
               }),
             );
@@ -441,7 +442,7 @@ class GridOverlayManager {
           const meta = res.highResMetadata[resolvedImgIndex];
           if (meta && typeof meta.heading === "number") {
             window.dispatchEvent(
-              new CustomEvent("GG_SYNC_POV", {
+              new CustomEvent(GG_CONSTANTS.EVENTS.SYNC_POV, {
                 detail: { heading: meta.heading, pitch: 0 },
               }),
             );

@@ -101,7 +101,7 @@ class GridInteractionHandler {
           const meta = storageRes.highResMetadata[resolvedImgIndex];
           if (meta && typeof meta.heading === "number") {
             window.dispatchEvent(
-              new CustomEvent("GG_SYNC_POV", {
+              new CustomEvent(GG_CONSTANTS.EVENTS.SYNC_POV, {
                 detail: { heading: meta.heading, pitch: 0 },
               }),
             );
@@ -120,7 +120,7 @@ class GridInteractionHandler {
 
         // クエリイベントを送信 (Content Script -> Background -> SidePanel でインターセプト)
         window.dispatchEvent(
-          new CustomEvent("GG_GRID_QUERY", { detail: { text: queryText } }),
+          new CustomEvent(GG_CONSTANTS.EVENTS.GRID_QUERY, { detail: { text: queryText } }),
         );
 
         // 右クリックフィードバック

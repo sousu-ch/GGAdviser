@@ -4,6 +4,7 @@
  * プロンプトの構築、送信、および生成停止コマンドの送信を担当する。
  */
 class GeminiService {
+  static DEBUG = false;
   constructor() {
 
   }
@@ -38,12 +39,13 @@ class GeminiService {
         action: GG_CONSTANTS.ACTIONS.STOP_GENERATION,
       },
       (response) => {
-
         if (chrome.runtime.lastError) {
-          console.error(
-            "[GeminiService] STOP_GENERATION エラー:",
-            chrome.runtime.lastError,
-          );
+          if (GeminiService.DEBUG) {
+            console.error(
+              "[GeminiService] STOP_GENERATION エラー:",
+              chrome.runtime.lastError,
+            );
+          }
         }
       },
     );
@@ -57,9 +59,11 @@ class GeminiService {
    */
   _buildFollowUpPrompt(userText) {
     if (!GG_PROMPTS || !GG_PROMPTS.FOLLOW_UP) {
-      console.warn(
-        "[GeminiService] GG_PROMPTS.FOLLOW_UP が見つかりません。生のテキストを使用します。",
-      );
+      if (GeminiService.DEBUG) {
+        console.warn(
+          "[GeminiService] GG_PROMPTS.FOLLOW_UP が見つかりません。生のテキストを使用します。",
+        );
+      }
       return userText;
     }
     return GG_PROMPTS.FOLLOW_UP.replace("{{userText}}", userText);

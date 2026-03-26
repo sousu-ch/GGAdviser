@@ -1,5 +1,8 @@
-// Gemini 用コンテンツスクリプト: GGAdviser (堅牢なポーリングと同時送信)
-// バージョン: 1.0.16 (リファクタリングおよび検証済み)
+/**
+ * Gemini 用コンテンツスクリプト: GGAdviser (v1.1.0 対応版)
+ * Gemini の入力欄への画像・テキストの転送支援、および生成完了後のレスポンスパースを担当する。
+ * 堅牢な MutationObserver により、Gemini の動的な UI 変化を監視し、生成の「開始」と「終了」を正確に検知する。
+ */
 
 (function () {
   const path = window.location.pathname;
@@ -34,11 +37,9 @@
     /* Ignore */
   }
 
-  // ロギングヘルパー (本番環境では抑制)
-
-  const _warn = (msg) => console.warn(`[GGAdviser:Gemini:WARN] ${msg}`);
-  const _error = (msg, err) =>
-    console.error(`[GGAdviser:Gemini:ERROR] ${msg}`, err || "");
+  const DEBUG = false;
+  const _warn = (msg) => { if (DEBUG) console.warn(`[GGAdviser:Gemini:WARN] ${msg}`); };
+  const _error = (msg, err) => { if (DEBUG) console.error(`[GGAdviser:Gemini:ERROR] ${msg}`, err || ""); };
 
 
 
@@ -113,7 +114,12 @@
 
   checkStorageOnceOnStart();
 
-  // 注入処理のメインロジック
+  /**
+   * 指定されたデータ（画像および構築済みプロンプトテキスト）を Gemini の UI へ注入する。
+   * 送信ボタンのクリック可能性の待機、画像のペースト処理、テキストの流し込みを順次実行する。
+   * @param {Object} data 注入対象の全データ。
+   * @returns {Promise<void>}
+   */
   async function executeInjection(data) {
 
     chrome.storage.local.remove(GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA); // 開始時に移動
@@ -227,24 +233,11 @@
       finalInputArea.dispatchEvent(new Event("change", { bubbles: true }));
     }
 
-    // 4. 送信ボタンのクリック (手動送信を強制: 自動クリック無効)
-    setTimeout(() => {
-      const sendButton = findSendButton();
-      // if (sendButton && !sendButton.disabled) sendButton.click();
-
-
-      // chrome.storage.local.remove('finalData'); // 開始時に移動
-
-      // globalInjector.enablePersistence は DOM を変更する (バッドプラクティス)。
-      // Gemini タブでの不要な DOM 書き換えを防ぐために無効化。
-      // if (images.length > 0 && globalInjector) {
-      //      globalInjector.enablePersistence(images);
-      // }
-
-      if (parser) {
-        setupGenerationObserver();
-      }
-    }, 2000);
+    // 4. 生成状態の監視開始
+    // ユーザー自身による送信後、Gemini の回答が完了するのをリッスン。
+    if (parser) {
+      setupGenerationObserver();
+    }
   }
 
   async function attachImageInternal(inputArea, dataUrl, index) {
@@ -269,7 +262,11 @@
     }
   }
 
-  // 効率的な生成検出 (停止ボタンモニター)
+  /**
+   * Gemini の生成状態を監視する MutationObserver のセットアップ。
+   * 送信ボタンが「停止ボタン」に変化したことを検知して生成開始とし、
+   * ボタンが消えた、または送信ボタンに戻った時点で生成終了とみなして ResponseParser を呼び出す。
+   */
   function setupGenerationObserver() {
     if (generationObserver) return;
 
@@ -292,39 +289,39 @@
         isGenerating = false;
 
 
-        // テキストが落ち着くまで少し待つ
-        setTimeout(() => {
-          const bodyText = document.body.innerText;
-          if (parser && bodyText.includes(parser.delimiter)) {
-            const parseResult = parser.parse(bodyText);
-            if (parseResult.data) {
-
-
-              // データとテキストの両方をバックグラウンドに送信
-              window.dispatchEvent(
-                new CustomEvent(GG_CONSTANTS.EVENTS.GAME_DATA_FETCH, {
-                  detail: parseResult.data,
-                }),
-              );
-              try {
-                chrome.runtime.sendMessage({
-                  action: "GG_PARSED_RESPONSE",
-                  data: parseResult.data,
-                  text: parseResult.text,
-                });
-              } catch (e) {}
-              // Clean up
-              if (generationObserver) {
-                generationObserver.disconnect();
-                generationObserver = null;
+        // テキストが落ち着くまでポーリングで待機 (最大5秒)
+        (async () => {
+          for (let attempt = 0; attempt < 10; attempt++) {
+            const bodyText = document.body.innerText;
+            if (parser) {
+              const parseResult = parser.parse(bodyText);
+              // 有効なデータが見つかれば送信
+              if (parseResult.data && (parseResult.data.global_clues || parseResult.data.is_fallback)) {
+                window.dispatchEvent(
+                  new CustomEvent(GG_CONSTANTS.EVENTS.GAME_DATA_FETCH, {
+                    detail: parseResult.data,
+                  }),
+                );
+                try {
+                  chrome.runtime.sendMessage({
+                    action: "GG_PARSED_RESPONSE",
+                    data: parseResult.data,
+                    text: parseResult.text,
+                  });
+                } catch (e) {}
+                // Clean up
+                if (generationObserver) {
+                  generationObserver.disconnect();
+                  generationObserver = null;
+                }
+                return; // 成功
               }
             }
-          } else {
-            _warn(
-              "Generation ended but delimiter not found (or parse failed).",
-            );
+            // まだ見つからない場合は 500ms 待機して再試行
+            await new Promise((r) => setTimeout(r, 500));
           }
-        }, 500);
+          _warn("Generation ended but valid data not found after 5 seconds polling.");
+        })();
       }
     });
 
@@ -382,7 +379,7 @@
       }
 
       // 停止コマンドを受信
-      if (request.action === "GG_STOP_GENERATION") {
+      if (request.action === GG_CONSTANTS.ACTIONS.STOP_GENERATION) {
 
 
         // 0. 中止フラグを設定 (生成前)

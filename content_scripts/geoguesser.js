@@ -1,6 +1,6 @@
 // Geoguesser Breakdown 画面用スクリプト
 (function () {
-  // console.log("GGAdviser: Content Script Loaded (Result Page Check)");
+  const DEBUG = false;
   
   // --- インターセプター戦略のグローバル状態 ---
   window.lastCapturedGameData = null;
@@ -15,26 +15,11 @@
   };
   (document.head || document.documentElement).appendChild(interceptorScript);
 
-  // --- 定数定義 (依存性排除のためローカル定義) ---
-  const LOCAL_CONSTANTS = {
-    SELECTORS: {
-      ROUND_ITEM: '[class*="game-summary_playedRound"]',
-      SELECTED_ROUND: '[class*="game-summary_selectedRound"]',
-      ANALYZE_BTN_ID: 'gg-analyze-btn',
-      GAME_SUMMARY_CONTAINER: 'div[class*="buttons_buttons"]',
-      ROUND_NUMBER: '[data-qa="round-number"]',
-    },
-    EVENTS: {
-      GAME_DATA_FETCH: "GG_GAME_DATA_FETCH",
-      ANALYSIS_START: "GG_ANALYSIS_START"
-    },
-    STORAGE_KEYS: {
-      PROMPT_TEMPLATE: 'gg_prompt_template',
-      LAST_GUESS_DATA: 'ggadviser_last_guess_data'
-    }
-  };
-
-  const LOCAL_STYLES = {
+  /**
+   * スタイル定義
+   * Result画面やGame画面のUIエレメントの外観を定義。
+   */
+  const BUTTON_STYLES = {
     // Result画面用: 絶対配置で右上に配置
     RESULT_BTN: `
       cursor: pointer;
@@ -67,7 +52,7 @@
   // --- パッシブデータリスナー ---
   window.addEventListener("message", (event) => {
     if (event.source !== window) return;
-    if (event.data && event.data.type === LOCAL_CONSTANTS.EVENTS.GAME_DATA_FETCH) {
+    if (event.data && event.data.type === GG_CONSTANTS.EVENTS.GAME_DATA_FETCH) {
       window.lastCapturedGameData = event.data.data;
     }
   });
@@ -86,15 +71,13 @@
     try {
       // 1. Game Page Logic (High Priority)
       if (location.pathname.includes("/game/")) {
-        const roundNumEl = document.querySelector(LOCAL_CONSTANTS.SELECTORS.ROUND_NUMBER);
+        const roundNumEl = document.querySelector(GG_CONSTANTS.SELECTORS.ROUND_NUMBER);
         if (roundNumEl) {
-           // Text usually "ROUND\n1 / 5" or "1 / 5"
            const text = roundNumEl.innerText; 
            const match = text.match(/(\d+)\s*\//);
            if (match) {
              const currentRound = parseInt(match[1], 10);
              if (!isNaN(currentRound) && currentRound > 0) {
-                // console.log(`[getSelectedRoundIndex] Game Page Detected: Round ${currentRound}`);
                 return currentRound - 1; 
              }
            }
@@ -102,8 +85,8 @@
       }
 
       // 2. Duel/Game Summary Logic
-      const summaryItems = Array.from(document.querySelectorAll(LOCAL_CONSTANTS.SELECTORS.ROUND_ITEM));
-      const summarySelected = document.querySelector(LOCAL_CONSTANTS.SELECTORS.SELECTED_ROUND);
+      const summaryItems = Array.from(document.querySelectorAll(GG_CONSTANTS.SELECTORS.ROUND_ITEM));
+      const summarySelected = document.querySelector(GG_CONSTANTS.SELECTORS.SELECTED_ROUND);
       
       const roundElements = summaryItems.filter(
         (el) =>
@@ -133,7 +116,7 @@
       }
 
     } catch (e) {
-      console.warn("Error determining selected round:", e);
+      if (DEBUG) console.warn("Error determining selected round:", e);
     }
     return totalRounds - 1;
   }
@@ -160,7 +143,6 @@
       targetRoundIndex = getSelectedRoundIndex(5);
     }
     
-    // console.log(`[extractBreakdownData] GameID: ${currentGameId}, RoundIndex: ${targetRoundIndex} (Override: ${overrideRoundIndex})`);
 
     let currentStrategies = [...strategies];
     if (location.pathname.startsWith("/game/") || location.pathname.includes("/results/")) {
@@ -183,10 +165,12 @@
           return data;
         }
       } catch (e) {
-        console.warn(
-          `GGAdviser: Strategy ${strategy.constructor.name} failed:`,
-          e,
-        );
+        if (DEBUG) {
+          console.warn(
+            `GGAdviser: Strategy ${strategy.constructor.name} failed:`,
+            e,
+          );
+        }
         errors.push(e.message);
       }
     }
@@ -206,21 +190,34 @@
       }
 
       window.dispatchEvent(
-        new CustomEvent(LOCAL_CONSTANTS.EVENTS.ANALYSIS_START),
+        new CustomEvent(GG_CONSTANTS.EVENTS.ANALYSIS_START),
       );
 
       chrome.storage.local.get(
-        LOCAL_CONSTANTS.STORAGE_KEYS.PROMPT_TEMPLATE,
+        [GG_CONSTANTS.STORAGE_KEYS.ACTIVE_PROMPT_ID],
         (res) => {
-          const template =
-            res[LOCAL_CONSTANTS.STORAGE_KEYS.PROMPT_TEMPLATE] ||
-            (typeof GG_PROMPTS !== "undefined" ? GG_PROMPTS.DEFAULT : "");
+          let template = "";
+          const activeId = res[GG_CONSTANTS.STORAGE_KEYS.ACTIVE_PROMPT_ID];
+
+          // ストレージから取得したプロンプトIDに基づいてテンプレートを検索
+          if (activeId && typeof GG_PROMPTS !== "undefined" && GG_PROMPTS.PRESETS) {
+            const preset = GG_PROMPTS.PRESETS.find(p => p.id === activeId);
+            if (preset) {
+              template = preset.content;
+            }
+          }
+
+          // IDに紐づくプリセットが見つからない場合はデフォルトプロンプトを使用
+          if (!template) {
+            template = (typeof GG_PROMPTS !== "undefined" ? GG_PROMPTS.DEFAULT : "");
+          }
+
           data.promptTemplate = template;
 
-          // Guessデータが存在する場合は Map Making App 連携用に Storage に保存しておく
+          // Guessデータが存在する場合は Map Making App 連携用に Storage に保存
           if (data.actualLocation && data.guessLocation) {
             chrome.storage.local.set({
-              [LOCAL_CONSTANTS.STORAGE_KEYS.LAST_GUESS_DATA]: {
+              [GG_CONSTANTS.STORAGE_KEYS.LAST_GUESS_DATA]: {
                 actualLocation: data.actualLocation,
                 guessLocation: data.guessLocation,
                 timestamp: Date.now()
@@ -232,10 +229,12 @@
             { type: "DATA_COLLECTED", payload: data },
             (response) => {
               if (chrome.runtime.lastError) {
-                console.error(
-                  "GGAdviser: SendMessage Error",
-                  chrome.runtime.lastError,
-                );
+                if (DEBUG) {
+                  console.error(
+                    "GGAdviser: SendMessage Error",
+                    chrome.runtime.lastError,
+                  );
+                }
                 window.ToastManager.show(
                   "Error",
                   "接続が切れました。ページをリロードしてください。",
@@ -256,7 +255,7 @@
         },
       );
     } catch (err) {
-      console.warn("GGAdviser: sendGameData Error", err);
+      if (DEBUG) console.warn("GGAdviser: sendGameData Error", err);
       label.innerText = "ERROR";
       if (btn) {
         btn.style.pointerEvents = "auto";
@@ -269,7 +268,7 @@
   document.addEventListener(
     "click",
     async (e) => {
-      const btn = e.target.closest("[id^='" + LOCAL_CONSTANTS.SELECTORS.ANALYZE_BTN_ID + "']");
+      const btn = e.target.closest("[id^='" + GG_CONSTANTS.SELECTORS.ANALYZE_BTN_ID + "']");
       if (!btn) return;
 
       e.preventDefault();
@@ -284,7 +283,7 @@
         const data = await extractBreakdownData();
 
         if (!data || data.error) {
-          console.error("GGAdviser: Data extraction failed", data);
+          if (DEBUG) console.error("GGAdviser: Data extraction failed", data);
           window.ToastManager.show(
             "Error",
             data ? data.error : "分析データの取得に失敗しました。",
@@ -300,7 +299,7 @@
         await sendGameData(data, label, originalText, btn);
 
       } catch (err) {
-        console.warn("GGAdviser: Click Error", err);
+        if (DEBUG) console.warn("GGAdviser: Click Error", err);
         label.innerText = "ERROR";
         setTimeout(() => {
           label.innerText = originalText;
@@ -315,16 +314,16 @@
    */
   function injectAnalyzeButton() {
     const buttonContainer = document.querySelector(
-      LOCAL_CONSTANTS.SELECTORS.GAME_SUMMARY_CONTAINER,
+      GG_CONSTANTS.SELECTORS.GAME_SUMMARY_CONTAINER,
     );
     if (
       !buttonContainer ||
-      document.getElementById(LOCAL_CONSTANTS.SELECTORS.ANALYZE_BTN_ID)
+      document.getElementById(GG_CONSTANTS.SELECTORS.ANALYZE_BTN_ID)
     )
       return;
 
     const analyzeBtn = document.createElement("a");
-    analyzeBtn.id = LOCAL_CONSTANTS.SELECTORS.ANALYZE_BTN_ID;
+    analyzeBtn.id = GG_CONSTANTS.SELECTORS.ANALYZE_BTN_ID;
     analyzeBtn.href = "#";
     analyzeBtn.className =
       "next-link_anchor__CQUJ3 button_link__LWagc button_variantSecondary__hvM_F";
@@ -341,7 +340,6 @@
     analyzeBtn.appendChild(wrapper);
 
     buttonContainer.appendChild(analyzeBtn);
-    // console.log("GGAdviser: Summary Button Injected");
   }
 
   /**
@@ -363,7 +361,7 @@
     analyzeBtn.id = btnId;
     analyzeBtn.href = "#";
     analyzeBtn.className = "next-link_anchor__CQUJ3 button_link__LWagc button_variantSecondary__hvM_F";
-    analyzeBtn.style.cssText = LOCAL_STYLES.RESULT_BTN;
+    analyzeBtn.style.cssText = BUTTON_STYLES.RESULT_BTN;
 
     const wrapper = document.createElement("div");
     wrapper.className = "button_wrapper__zayJ3";
@@ -414,7 +412,6 @@
     };
 
     container.appendChild(analyzeBtn);
-    // console.log("GGAdviser: Result Button Injected");
   }
 
   /**
@@ -429,7 +426,7 @@
     
     if (!anchor) return;
     
-    const btnId = LOCAL_CONSTANTS.SELECTORS.ANALYZE_BTN_ID + "-game";
+    const btnId = GG_CONSTANTS.SELECTORS.ANALYZE_BTN_ID + "-game";
     if (document.getElementById(btnId)) return;
 
     const container = anchor.parentElement?.parentElement;
@@ -444,7 +441,7 @@
     const targetFontSize = "20px";
     const targetFontWeight = "700";
 
-    analyzeBtn.style.cssText = LOCAL_STYLES.GAME_BTN(targetHeight, targetFontSize, targetFontWeight);
+    analyzeBtn.style.cssText = BUTTON_STYLES.GAME_BTN(targetHeight, targetFontSize, targetFontWeight);
 
     const wrapper = document.createElement("div");
     wrapper.className = "button_wrapper__zayJ3"; 
@@ -460,7 +457,6 @@
     analyzeBtn.appendChild(wrapper);
 
     container.appendChild(analyzeBtn);
-    // console.log(`GGAdviser: Game Button Injected (Fixed Style)`);
   }
 
   function tryInject() {
@@ -505,7 +501,7 @@
   });
 
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "SHOW_TOAST") {
+    if (request.action === GG_CONSTANTS.ACTIONS.SHOW_TOAST) {
       window.ToastManager.show(
         request.title,
         request.message,
@@ -514,13 +510,28 @@
     }
   });
 
-  // Helper for getPromptTemplate (not defined in snippet but necessary for injectResultButton logic)
-  function getPromptTemplate() {
-     return new Promise(resolve => {
-        chrome.storage.local.get(LOCAL_CONSTANTS.STORAGE_KEYS.PROMPT_TEMPLATE, res => {
-           resolve(res[LOCAL_CONSTANTS.STORAGE_KEYS.PROMPT_TEMPLATE] || (typeof GG_PROMPTS !== "undefined" ? GG_PROMPTS.DEFAULT : ""));
+  /**
+   * 現在アクティブなプロンプトテンプレートを取得するヘルパー。
+   */
+  async function getPromptTemplate() {
+    return new Promise(resolve => {
+        chrome.storage.local.get([GG_CONSTANTS.STORAGE_KEYS.ACTIVE_PROMPT_ID], res => {
+          const activeId = res[GG_CONSTANTS.STORAGE_KEYS.ACTIVE_PROMPT_ID];
+          let template = "";
+
+           // IDに基づいてプリセットから取得
+          if (activeId && typeof GG_PROMPTS !== "undefined" && GG_PROMPTS.PRESETS) {
+              const preset = GG_PROMPTS.PRESETS.find(p => p.id === activeId);
+              if (preset) template = preset.content;
+          }
+
+           // 見つからない場合はデフォルト
+          if (!template) {
+              template = (typeof GG_PROMPTS !== "undefined" ? GG_PROMPTS.DEFAULT : "");
+          }
+          resolve(template);
         });
-     });
+    });
   }
 
 })();

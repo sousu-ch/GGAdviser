@@ -21,9 +21,14 @@ class ResponseParser {
 
     // ケース 1: デリミタが見つからない (通常のチャットまたは不完全なレスポンス)
     if (parts.length < 2) {
+      const extracted = this._extractFromMarkers(rawText);
       return {
-        text: rawText.trim(),
-        data: null,
+        text: extracted.text,
+        data: extracted.data || {
+          global_clues: {},
+          local_clues: [],
+          is_fallback: true
+        },
         error: null,
       };
     }
@@ -32,23 +37,12 @@ class ResponseParser {
     let jsonPart = "";
 
     // 戦略 1: 明示的なマーカー (推奨)
-    const startMarker = "[解説開始]";
-    const endMarker = "[解説終了]";
-
-    // 最後の終了マーカーを見つける (最新の完了)
-    const endIndex = rawText.lastIndexOf(endMarker);
-
-    // その終了マーカーに関連付けられた開始マーカーを見つける (終了位置から後方に検索)
-    const startIndex =
-      endIndex !== -1 ? rawText.lastIndexOf(startMarker, endIndex) : -1;
-
-    if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
-      explanation = rawText
-        .substring(startIndex + startMarker.length, endIndex)
-        .trim();
-
+    const extracted = this._extractFromMarkers(rawText);
+    if (extracted.found) {
+      explanation = extracted.text;
+      
       // JSONについては、解説の後のデリミタまたはJSONブロックを引き続き探す
-      const afterExplanation = rawText.substring(endIndex + endMarker.length);
+      const afterExplanation = rawText.substring(extracted.endPos);
       const delimiterIndex = afterExplanation.indexOf(this.delimiter);
 
       if (delimiterIndex !== -1) {
@@ -58,6 +52,15 @@ class ResponseParser {
       } else {
         // 解説後にデリミタが見つからない場合は、すべてを取得する
         jsonPart = afterExplanation.trim();
+      }
+
+      // JSONが見つからない場合、ヘッダーから抽出したデータを利用する
+      if (!jsonPart && extracted.data) {
+        return {
+          text: explanation,
+          data: extracted.data,
+          error: null
+        };
       }
     } else {
       // 戦略 2: デリミタ分割へのフォールバック (レガシー)
@@ -89,6 +92,49 @@ class ResponseParser {
       data: jsonResult.data,
       error: jsonResult.error,
     };
+  }
+
+  /**
+   * [解説開始] [解説終了] マーカーからテキストを抽出し、ヘッダーからデータを解析する。
+   * @param {string} rawText 
+   * @returns {object} { found: boolean, text: string, data: object|null, endPos: number }
+   */
+  _extractFromMarkers(rawText) {
+    const startMarker = "[解説開始]";
+    const endMarker = "[解説終了]";
+
+    const endIndex = rawText.lastIndexOf(endMarker);
+    const startIndex = endIndex !== -1 ? rawText.lastIndexOf(startMarker, endIndex) : -1;
+
+    if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+      const text = rawText.substring(startIndex + startMarker.length, endIndex).trim();
+      
+      // ヘッダー解析: ## 🇧🇷 国名 (地域名)
+      // 例: ## 🇧🇷 ブラジル (地域: セラン)
+      const headerRegex = /^##\s*([\u{1F1E6}-\u{1F1FF}]{2})?\s*([^\(\n]+)(?:\((?:地域:?\s*)?([^\)]+)\))?/mu;
+      const match = text.match(headerRegex);
+      
+      let data = null;
+      if (match) {
+        data = {
+          global_clues: {
+            country: (match[1] ? match[1] + " " : "") + match[2].trim(),
+            region: match[3] ? match[3].trim() : ""
+          },
+          local_clues: [],
+          is_fallback: true
+        };
+      }
+
+      return {
+        found: true,
+        text: text,
+        data: data,
+        endPos: endIndex + endMarker.length
+      };
+    }
+
+    return { found: false, text: rawText.trim(), data: null, endPos: -1 };
   }
 
   /**

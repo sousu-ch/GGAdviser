@@ -3,6 +3,7 @@
  * グリッドとハイライトの実際の DOM 作成を処理する。
  */
 class GridRenderer {
+  static DEBUG = false;
   /**
    * 画像コンテナの上に 5x5 の HTML グリッドを描画する。
    */
@@ -19,9 +20,11 @@ class GridRenderer {
 
     // 必須パラメータのチェック
     if (!container || !img) {
-      console.warn(
-        "[GridRenderer] Missing container or img for grid rendering.",
-      );
+      if (GridRenderer.DEBUG) {
+        console.warn(
+          "[GridRenderer] Missing container or img for grid rendering.",
+        );
+      }
       return;
     }
 

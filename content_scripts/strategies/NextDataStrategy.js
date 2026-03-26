@@ -1,4 +1,5 @@
 class NextDataStrategy extends DataExtractionStrategy {
+  static DEBUG = false;
   constructor() {
     super();
   }
@@ -22,9 +23,11 @@ class NextDataStrategy extends DataExtractionStrategy {
       if (game) {
         const nextDataId = game.gameId || game.id;
         if (nextDataId !== gameId) {
-          console.warn(
-            `[NextDataStrategy] 古いデータが検出されました (Data: ${nextDataId}, Current: ${gameId})`,
-          );
+          if (NextDataStrategy.DEBUG) {
+            console.warn(
+              `[NextDataStrategy] 古いデータが検出されました (Data: ${nextDataId}, Current: ${gameId})`,
+            );
+          }
           return null;
         }
 
@@ -52,7 +55,7 @@ class NextDataStrategy extends DataExtractionStrategy {
         }
       }
     } catch (e) {
-      console.error("[NextDataStrategy] Parse error:", e);
+      if (NextDataStrategy.DEBUG) console.error("[NextDataStrategy] Parse error:", e);
     }
     return null;
   }

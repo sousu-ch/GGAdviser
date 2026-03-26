@@ -3,6 +3,7 @@
  * インターフェースと共有ヘルパーメソッドを定義する。
  */
 class DataExtractionStrategy {
+  static DEBUG = false;
   constructor() {}
 
   /**
@@ -47,7 +48,7 @@ class DataExtractionStrategy {
         return this._myId;
       }
     } catch (e) {
-      console.warn("[DataExtractionStrategy] Failed to fetch my ID:", e);
+      if (DataExtractionStrategy.DEBUG) console.warn("[DataExtractionStrategy] Failed to fetch my ID:", e);
     }
     return null;
   }
@@ -95,7 +96,9 @@ class DataExtractionStrategy {
 
     const actualCoords = getCoords(pano);
     if (!actualCoords) {
-      console.warn(`[DataExtractionStrategy] Failed to extract actual coordinates from source ${source}:`, pano);
+      if (DataExtractionStrategy.DEBUG) {
+        console.warn(`[DataExtractionStrategy] Failed to extract actual coordinates from source ${source}:`, pano);
+      }
       return null;
     }
 

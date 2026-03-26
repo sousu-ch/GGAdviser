@@ -4,6 +4,7 @@
  * パノラマデータの取得や POV (視点) の更新イベントを仲介する。
  */
 class PanoBridge {
+  static DEBUG = false;
   constructor() {
     this.mainScriptInjected = false;
 
@@ -12,7 +13,7 @@ class PanoBridge {
   init() {
 
     if (!window.GG_CONSTANTS) {
-      console.error("GGAdviser: FATAL - GG_CONSTANTS not found!");
+      if (PanoBridge.DEBUG) console.error("GGAdviser: FATAL - GG_CONSTANTS not found!");
       return;
     }
     chrome.runtime.sendMessage({
@@ -33,14 +34,14 @@ class PanoBridge {
       } else if (request.action === "UPDATE_POV" && request.data) {
 
         window.dispatchEvent(
-          new CustomEvent("GG_UPDATE_POV", { detail: request.data }),
+          new CustomEvent(GG_CONSTANTS.EVENTS.UPDATE_POV, { detail: request.data }),
         );
       } else if (request.action === "UPDATE_POV_FAST" && request.data) {
 
         window.dispatchEvent(
-          new CustomEvent("GG_SET_POV_FAST", { detail: request.data }),
+          new CustomEvent(GG_CONSTANTS.EVENTS.SET_POV_FAST, { detail: request.data }),
         );
-      } else if (request.action === "GG_LOG") {
+      } else if (request.action === GG_CONSTANTS.ACTIONS.GG_LOG) {
 
       }
     });
@@ -48,14 +49,14 @@ class PanoBridge {
 
   injectPanoScript(data) {
 
-    window.dispatchEvent(new CustomEvent("GG_MANUAL_INJECT", { detail: data }));
+    window.dispatchEvent(new CustomEvent(GG_CONSTANTS.EVENTS.MANUAL_INJECT, { detail: data }));
     this.mainScriptInjected = true;
   }
 
   requestCurrentCoordinates() {
     return new Promise((resolve, reject) => {
       const handler = (e) => {
-        window.removeEventListener("GG_MAP_DATA_RESPONSE", handler);
+        window.removeEventListener(GG_CONSTANTS.EVENTS.MAP_DATA_RESPONSE, handler);
         const result = e.detail;
         if (result.success && result.data) {
           resolve(result.data);
@@ -66,11 +67,11 @@ class PanoBridge {
         }
       };
       setTimeout(() => {
-        window.removeEventListener("GG_MAP_DATA_RESPONSE", handler);
+        window.removeEventListener(GG_CONSTANTS.EVENTS.MAP_DATA_RESPONSE, handler);
         reject(new Error("Timeout waiting for map data. Is the map loaded?"));
       }, 2000);
-      window.addEventListener("GG_MAP_DATA_RESPONSE", handler);
-      window.dispatchEvent(new CustomEvent("GG_REQUEST_MAP_DATA"));
+      window.addEventListener(GG_CONSTANTS.EVENTS.MAP_DATA_RESPONSE, handler);
+      window.dispatchEvent(new CustomEvent(GG_CONSTANTS.EVENTS.REQUEST_MAP_DATA));
     });
   }
 }

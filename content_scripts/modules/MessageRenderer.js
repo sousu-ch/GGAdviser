@@ -4,6 +4,7 @@
  * インラインスタイルを排除し、外部CSS（ui_components.css）への統合を前提とする。
  */
 class MessageRenderer {
+  static DEBUG = false;
   constructor() {
     this.chatContainer = null;
     this.scrollArea = null;
@@ -379,7 +380,7 @@ class MessageRenderer {
           }),
         );
       } catch (err) {
-        console.error("[MessageRenderer] Failed to dispatch click event", err);
+        if (MessageRenderer.DEBUG) console.error("[MessageRenderer] Failed to dispatch click event", err);
       }
     });
 

@@ -195,12 +195,122 @@
         border: 1px solid #fecaca;
       }
 
+      .btn-danger {
+        background-color: #fef2f2;
+        color: #ef4444;
+        border: 1px solid #fee2e2;
+      }
+
+      .btn-danger:hover {
+        background-color: #fee2e2;
+      }
+
+      .map-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        background: #ffffff;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        transition: border-color 0.2s;
+      }
+
+      .map-info {
+        flex: 1;
+        overflow: hidden;
+        margin-right: 12px;
+      }
+
+      .map-name {
+        font-weight: 600;
+        margin-bottom: 4px;
+        font-size: 0.95rem;
+      }
+
+      .map-url {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .map-active-badge {
+        font-size: 0.7rem;
+        background: var(--primary-color);
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        margin-left: 8px;
+        vertical-align: middle;
+        font-weight: normal;
+      }
+      
       code {
         background: #f3f4f6;
         padding: 2px 4px;
         border-radius: 4px;
         font-size: 90%;
         color: #ef4444;
+      }
+      
+      /* カスタムモーダルスタイル */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        animation: fadeIn 0.2s ease-out;
+      }
+
+      .modal-box {
+        background: var(--card-bg);
+        width: 90%;
+        max-width: 450px;
+        border-radius: 16px;
+        padding: 32px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        text-align: center;
+        transform: translateY(0);
+        animation: slideUp 0.3s ease-out;
+      }
+
+      .modal-title {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #ef4444;
+        margin-bottom: 16px;
+      }
+
+      .modal-body {
+        font-size: 1rem;
+        color: var(--text-main);
+        line-height: 1.6;
+        margin-bottom: 24px;
+      }
+
+      .modal-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes slideUp {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
       }
     </style>
   </head>
@@ -264,45 +374,73 @@
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" id="maps-card">
         <div class="section-header">
-          <div class="section-title" style="margin-bottom: 0">📍 地図設定</div>
-          <button id="reset-map-btn" class="btn-secondary btn-sm">
-            地図設定を初期化
-          </button>
+          <div class="section-title" style="margin-bottom: 0">📍 地図設定リスト</div>
         </div>
-        <div class="form-group">
-          <label for="map-url">Result Map URL (map-making.app)</label>
-          <input
-            type="text"
-            id="map-url"
-            placeholder="https://map-making.app/maps/XXXXXX (設定必須)"
-          />
-          <p class="hint">
-            分析結果を表示する際に使用する map-making.app
-            のマップURLを入力してください。
-          </p>
+        
+        <!-- マップ追加フォーム -->
+        <div class="form-group" style="background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px dashed var(--border-color); margin-bottom: 24px;">
+          <h3 style="margin-top:0; font-size:0.95rem; margin-bottom:12px; color: var(--text-main);">新しい地図を追加</h3>
+          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <input type="text" id="new-map-url" placeholder="URL (例: https://map-making.app/maps/XXXXXX)" style="flex: 1;" />
+            <button id="fetch-title-btn" class="btn-secondary" style="white-space: nowrap;">タイトル自動取得</button>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="new-map-name" placeholder="表示名 (手動入力または自動取得)" style="flex: 1;" />
+            <button id="add-map-btn" class="btn-primary" style="white-space: nowrap;">リストに追加</button>
+          </div>
+        </div>
+
+        <!-- マップリスト表示領域 -->
+        <div id="maps-list-container" style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="text-align:center; color: var(--text-muted); font-size: 0.9rem; padding: 20px;">読み込み中...</div>
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" id="prompts-card">
         <div class="section-header">
-          <div class="section-title" style="margin-bottom: 0">
-            ✍️ プロンプトテンプレート
-          </div>
-          <button id="reset-prompt-btn" class="btn-secondary btn-sm">
-            プロンプトを初期化
+          <div class="section-title" style="margin-bottom: 0">✍️ プロンプト設定リスト</div>
+          <button id="reset-prompts-btn" class="btn-secondary btn-sm">
+            全プロンプトを初期化
           </button>
         </div>
-        <div class="form-group">
-          <label for="prompt-template">Gemini プロンプト</label>
-          <textarea id="prompt-template"></textarea>
-          <p class="hint">
-            利用可能なプレースホルダ: <code>{{lat}}</code> (緯度),
-            <code>{{lng}}</code> (経度), <code>{{date}}</code> (撮影時期),
-            <code>{{url}}</code> (Google Maps URL),
-            <code>{{address}}</code> (元のタイトル)
-          </p>
+
+        <div id="prompts-list-container" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
+           <div style="text-align:center; color: var(--text-muted); font-size: 0.9rem; padding: 20px;">読み込み中...</div>
+        </div>
+
+        <div id="prompt-edit-form" class="form-group" style="background: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); display: none;">
+          <h3 id="form-title" style="margin-top:0; font-size:1.1rem; margin-bottom:16px; color: var(--primary-color);">プロンプトを編集</h3>
+          
+          <div class="form-group">
+            <label>プロンプト名</label>
+            <input type="text" id="edit-prompt-name" placeholder="例: 国特定 (最速)" />
+          </div>
+
+          <div class="form-group">
+            <label>説明 (UIに表示されます)</label>
+            <input type="text" id="edit-prompt-desc" placeholder="例: JSONなし。タグ形式で最短回答。" />
+          </div>
+
+          <div class="form-group">
+            <label>Gemini プロンプト内容</label>
+            <textarea id="edit-prompt-content" style="height: 250px;"></textarea>
+            <p class="hint">
+              利用可能なプレースホルダ: <code>{{lat}}</code>, <code>{{lng}}</code>, <code>{{date}}</code>, <code>{{url}}</code>, <code>{{address}}</code>, <code>{{guess_lat}}</code>, <code>{{guess_lng}}</code>, <code>{{userText}}</code>
+            </p>
+          </div>
+
+          <div class="actions" style="border-top: 1px solid #e5e7eb; padding-top: 16px;">
+            <button id="cancel-edit-btn" class="btn-secondary">キャンセル</button>
+            <button id="save-prompt-item-btn" class="btn-primary">変更を適用</button>
+          </div>
+        </div>
+
+        <div id="add-prompt-trigger" style="text-align: center;">
+          <button id="show-add-prompt-btn" class="btn-secondary" style="width: 100%; border: 1px dashed var(--border-color); background: #ffffff;">
+            ＋ 新しいプロンプトを追加
+          </button>
         </div>
       </div>
 
@@ -323,6 +461,21 @@
       
 
     </div>
+    
+    <!-- 汎用確認モーダル -->
+    <div id="confirm-modal" class="modal-overlay">
+      <div class="modal-box">
+        <div id="modal-title" class="modal-title">確認</div>
+        <div id="modal-body" class="modal-body">
+          よろしいですか？
+        </div>
+        <div class="modal-actions">
+          <button id="modal-cancel-btn" class="btn-secondary">キャンセル</button>
+          <button id="modal-confirm-btn" class="btn-primary" style="background-color: #ef4444;">実行する</button>
+        </div>
+      </div>
+    </div>
+
     <script src="content_scripts/utils/constants.js"></script>
     <script src="content_scripts/utils/prompts.js"></script>
     <script src="options.js"></script>

@@ -5,6 +5,7 @@
  * 実際のDOM描画や通信の一部は MessageRenderer および GeminiService に委譲されている。
  */
 class GameUI {
+  static DEBUG = false;
   constructor() {
 
     this.container = null;
@@ -164,7 +165,7 @@ class GameUI {
   _ensureSkeletalLayout() {
     this.container = document.getElementById("gg-meta-panel");
     if (!this.container) {
-      console.warn("[GameUI] Meta Panel not found. Is Split View active?");
+      if (GameUI.DEBUG) console.warn("[GameUI] Meta Panel not found. Is Split View active?");
       return;
     }
 
@@ -303,7 +304,7 @@ class GameUI {
                   }
                 }
               } catch (e) {
-                console.warn("[GameUI] Flag conversion failed", e);
+                if (GameUI.DEBUG) console.warn("[GameUI] Flag conversion failed", e);
               }
             }
           }
@@ -327,7 +328,7 @@ class GameUI {
     listContainer.appendChild(divider);
 
     // 3. ローカルヒント（リスト）
-    if (data.local_clues && Array.isArray(data.local_clues)) {
+    if (data.local_clues && Array.isArray(data.local_clues) && data.local_clues.length > 0) {
       const ul = document.createElement("ul");
       ul.className = "gg-clue-list-ul";
 

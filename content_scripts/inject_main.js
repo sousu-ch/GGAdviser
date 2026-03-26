@@ -2,7 +2,7 @@
 // メインワールドで実行される (隔離ワールドの制限を回避、src 注入によって承認済み)
 
 (function () {
-
+  const DEBUG = false;
 
   let activePano = null;
   let _signalTimeout = null;
@@ -136,7 +136,7 @@
         google.maps.event.trigger(activePano, "resize");
       }, 100);
     } catch (e) {
-      console.error("GGAdviser_MAIN: Pano Error", e);
+      if (DEBUG) console.error("GGAdviser_MAIN: Pano Error", e);
       signalPanoReady(0); // ハングアップを避けるため、エラー時でもとにかく続行
     }
   }
