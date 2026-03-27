@@ -71,16 +71,31 @@
     try {
       // 1. Game Page Logic (High Priority)
       if (location.pathname.includes("/game/")) {
-        const roundNumEl = document.querySelector(GG_CONSTANTS.SELECTORS.ROUND_NUMBER);
+        // 1. 複数のセレクタを順に試して、現在のラウンド数インジケーターを取得
+        // data-qa="round-number" や ハッシュ付きクラス名の両方に対応
+        const selectors = GG_CONSTANTS.SELECTORS.ROUND_NUMBER.split(',').map(s => s.trim());
+        let roundNumEl = null;
+        for (const s of selectors) {
+          roundNumEl = document.querySelector(s);
+          if (roundNumEl) break;
+        }
+
         if (roundNumEl) {
-           const text = roundNumEl.innerText; 
-           const match = text.match(/(\d+)\s*\//);
-           if (match) {
-             const currentRound = parseInt(match[1], 10);
-             if (!isNaN(currentRound) && currentRound > 0) {
-                return currentRound - 1; 
-             }
-           }
+          const text = roundNumEl.innerText;
+          // "ROUND 1 / 5" または "Round 1" 形式から数値を抽出
+          const match = text.match(/(\d+)\s*\//) || text.match(/Round\s*(\d+)/i);
+          if (match) {
+            const currentRound = parseInt(match[1], 10);
+            if (!isNaN(currentRound) && currentRound > 0) {
+              // 調査の結果、GeoGuessrの結果画面（中間・最終とも）の表示は
+              // すでに「完了したラウンド」を正確に指していることが判明したため、
+              // 単純に -1 してインデックス化するだけで全てのケースで正しく動作する。
+              const finalIdx = currentRound - 1;
+              
+              if (DEBUG) console.log(`[GGAdviser] Detected Round: ${currentRound}, FinalIndex: ${finalIdx}`);
+              return finalIdx;
+            }
+          }
         }
       }
 

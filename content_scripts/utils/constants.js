@@ -12,6 +12,7 @@
         NEXT_DATA_ID: '__NEXT_DATA__',
         GAME_SUMMARY_CONTAINER: 'div[class*="buttons_buttons"]',
         SELECTED_ROUND: '[class*="game-summary_selectedRound"]',
+        ROUND_NUMBER: '[data-qa="round-number"], [class*="styles_round"], [class*="round-number_indicator"]',
         
         // Map-making.app UI
         MAP_APP_WRAPPER: '.page-map-editor',
