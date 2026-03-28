@@ -270,6 +270,25 @@
   function setupGenerationObserver() {
     if (generationObserver) return;
 
+    /**
+     * 最新の AI メッセージ（Model）のコンテナ要素を特定して取得する。
+     * プロンプト（User）側のテンプレートを誤検知しないための精密セレクター。
+     * @returns {HTMLElement|null}
+     */
+    function _getLatestModelMessage() {
+      // AI 回答にのみ付随するフィードバックボタン（良い回答 / Good response）をフックにする
+      const feedbackButtons = document.querySelectorAll('[aria-label="良い回答"], [aria-label="Good response"], [aria-label="悪い回答"], [aria-label="Bad response"]');
+      if (feedbackButtons.length === 0) return null;
+
+      // 最後のボタン（＝最新のメッセージブロック）を特定
+      const latestButton = feedbackButtons[feedbackButtons.length - 1];
+      
+      // ボタンが含まれるメッセージコンテナを特定（article または role="model" に類する親要素）
+      return latestButton.closest('.model-response-container') || 
+             latestButton.closest('article') || 
+             latestButton.parentElement.closest('[role="region"]') ||
+             latestButton.parentElement.parentElement;
+    }
 
     const targetNode = document.body;
     const config = {
