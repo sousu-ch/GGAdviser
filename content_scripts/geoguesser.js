@@ -91,8 +91,6 @@
               // すでに「完了したラウンド」を正確に指していることが判明したため、
               // 単純に -1 してインデックス化するだけで全てのケースで正しく動作する。
               const finalIdx = currentRound - 1;
-              
-              if (DEBUG) console.log(`[GGAdviser] Detected Round: ${currentRound}, FinalIndex: ${finalIdx}`);
               return finalIdx;
             }
           }
@@ -136,9 +134,6 @@
     return totalRounds - 1;
   }
 
-  /**
-   * 利用可能な戦略を反復処理してデータ抽出プロセスを調整する。
-   */
   /**
    * 利用可能な戦略を反復処理してデータ抽出プロセスを調整する。
    * @param {string} [overrideGameId] - 抽出するゲームID（指定時優先）

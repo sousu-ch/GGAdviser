@@ -44,7 +44,7 @@ class MessageRenderer {
     bubble.className = "gg-chat-bubble gg-chat-bubble-user";
     bubble.innerText = text;
     this.chatContainer.appendChild(bubble);
-    this._scrollToBottom();
+    this._scrollToElementTop(bubble);
   }
 
   /**
@@ -59,15 +59,18 @@ class MessageRenderer {
 
     const content = document.createElement("div");
     content.className = "gg-stream-raw";
-    content.innerHTML = this._parseMarkdown(text);
+    
+    // まず Markdown をパース
+    const html = this._parseMarkdown(text);
+    // パース済みの HTML に対して国旗絵文字を画像に置換
+    content.innerHTML = this._convertFlagsToImages(html);
 
     bubble.appendChild(content);
     this.chatContainer.appendChild(bubble);
 
     // 新しいメッセージ内のインタラクティブリンクにリスナーを添付
     this._attachLinkListeners(content);
-
-    this._scrollToBottom();
+    this._scrollToElementTop(bubble);
     return bubble;
   }
 
@@ -117,14 +120,16 @@ class MessageRenderer {
   }
 
   /**
-   * チャットエリアを最下部までスクロールする。
+   * 指定された要素（メッセージ吹き出し等）の先頭が
+   * チャットエリアの最上部にくるようにスクロールする。
+   * @param {HTMLElement} el - 対象の要素
    */
-  _scrollToBottom() {
-    if (this.scrollArea) {
+  _scrollToElementTop(el) {
+    if (this.scrollArea && el) {
       setTimeout(() => {
-        this.scrollArea.scrollTo({
-          top: this.scrollArea.scrollHeight,
+        el.scrollIntoView({
           behavior: "smooth",
+          block: "start",
         });
       }, 50);
     }
@@ -421,6 +426,38 @@ class MessageRenderer {
       },
       true,
     );
+  }
+
+  /**
+   * テキスト内の Unicode 国旗絵文字を、ローカルの PNG 画像 (24px) に置換する。
+   * Windows 等の OS で国旗が表示されない問題を解決する。
+   * @param {string} text 
+   * @returns {string} 置換後のテキスト
+   */
+  _convertFlagsToImages(text) {
+    if (!text) return text;
+
+    // 国旗絵文字 (Regional Indicator Symbols) のペアを検出する正規表現
+    const flagRegex = /\uD83C[\uDDE6-\uDDFF]\uD83C[\uDDE6-\uDDFF]/g;
+
+    return text.replace(flagRegex, (match) => {
+      try {
+        // 絵文字から国コード (ISO 2文字) を抽出
+        const codePoints = Array.from(match).map(c => c.codePointAt(0));
+        const iso = codePoints
+          .map(cp => String.fromCharCode(cp - 0x1F1E6 + 65))
+          .join("")
+          .toLowerCase();
+
+        if (iso.length === 2 && /^[a-z]{2}$/.test(iso)) {
+          const flagUrl = chrome.runtime.getURL(`assets/flags/${iso}.png`);
+          return `<img src="${flagUrl}" class="gg-chat-flag-icon" data-iso="${iso}" alt="${iso}" title="${iso.toUpperCase()}" style="height: 1.2em; vertical-align: text-bottom; margin-right: 4px; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">`;
+        }
+      } catch (err) {
+        if (MessageRenderer.DEBUG) console.error("[MessageRenderer] Flag conversion failed:", err);
+      }
+      return match;
+    });
   }
 }
 

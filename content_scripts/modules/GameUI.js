@@ -149,13 +149,7 @@ class GameUI {
       item.classList.add("selected");
     });
 
-    // フィードバック: 最初の一致アイテムまでスクロール（スキップされない場合）
-    if (!skipScroll) {
-      const first = items[0];
-      first.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-
-
+    // フィードバック: 以前はここに scrollIntoView がありましたが、ユーザー体験向上のため削除しました。
   }
 
   /**
@@ -300,7 +294,8 @@ class GameUI {
                     .join("")
                     .toLowerCase();
                   if (iso.length === 2 && /[a-z]{2}/.test(iso)) {
-                    icon = `<img src="https://flagcdn.com/h24/${iso}.png" class="gg-flag-icon" alt="${iso}">`;
+                    const flagPath = chrome.runtime.getURL(`assets/flags/${iso}.png`);
+                    icon = `<img src="${flagPath}" class="gg-flag-icon" alt="${iso}">`;
                   }
                 }
               } catch (e) {
@@ -403,9 +398,10 @@ class GameUI {
                         <span class="gg-clue-title">${clue.title || "Unknown Clue"}</span>
                         ${coord ? `<span class="gg-clue-tag">${this._getDirLabel(clue.image_index)} ${coord}</span>` : ""}
                     </div>
+                    ${clue.description ? `
                     <div class="gg-clue-body">
-                        ${clue.description || ""}
-                    </div>
+                        ${clue.description}
+                    </div>` : ""}
                 `;
         ul.appendChild(li);
       });
@@ -597,7 +593,6 @@ class GameUI {
         );
         if (targetClue) {
           targetClue.classList.add("selected");
-          targetClue.scrollIntoView({ behavior: "smooth", block: "center" });
         }
 
         // 2. チャットリンクのハイライト (レガシー復元: Blue)
