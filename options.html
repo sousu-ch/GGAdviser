@@ -382,14 +382,11 @@
         <!-- マップ追加フォーム -->
         <div class="form-group" style="background: #f8fafc; padding: 16px; border-radius: 8px; border: 1px dashed var(--border-color); margin-bottom: 24px;">
           <h3 style="margin-top:0; font-size:0.95rem; margin-bottom:12px; color: var(--text-main);">新しい地図を追加</h3>
-          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <input type="text" id="new-map-url" placeholder="URL (例: https://map-making.app/maps/XXXXXX)" style="flex: 1;" />
-            <button id="fetch-title-btn" class="btn-secondary" style="white-space: nowrap;">タイトル自動取得</button>
-          </div>
           <div style="display: flex; gap: 8px;">
-            <input type="text" id="new-map-name" placeholder="表示名 (手動入力または自動取得)" style="flex: 1;" />
+            <input type="text" id="new-map-url" placeholder="URL (例: https://map-making.app/maps/XXXXXX)" style="flex: 1;" />
             <button id="add-map-btn" class="btn-primary" style="white-space: nowrap;">リストに追加</button>
           </div>
+          <p class="hint" style="margin-top: 8px; margin-bottom: 0;">URLを入力して追加すると、タイトルを自動的に取得します。</p>
         </div>
 
         <!-- マップリスト表示領域 -->

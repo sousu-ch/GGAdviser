@@ -15,40 +15,6 @@
   };
   (document.head || document.documentElement).appendChild(interceptorScript);
 
-  /**
-   * スタイル定義
-   * Result画面やGame画面のUIエレメントの外観を定義。
-   */
-  const BUTTON_STYLES = {
-    // Result画面用: 絶対配置で右上に配置
-    RESULT_BTN: `
-      cursor: pointer;
-      height: 48px;
-      display: inline-flex;
-      align-items: center;
-      position: absolute;
-      right: -240px; /* カードの右側に配置するためのオフセット */
-      top: 0;
-      width: 220px; 
-      justify-content: center;
-    `,
-    // Game画面用: 上端揃え、ネイティブスタイル合わせ
-    GAME_BTN: (height, fontSize, fontWeight) => `
-      margin: 0 !important;
-      margin-left: 15px !important;
-      align-self: flex-start !important;
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      cursor: pointer !important;
-      z-index: 999999 !important;
-      min-width: 200px !important;
-      height: ${height} !important;
-      font-size: ${fontSize} !important;
-      font-weight: ${fontWeight} !important;
-    `
-  };
-
   // --- パッシブデータリスナー ---
   window.addEventListener("message", (event) => {
     if (event.source !== window) return;
@@ -193,7 +159,9 @@
    */
   async function sendGameData(data, label, originalText, btn) {
     try {
-      label.innerText = "分析中...";
+      const span = label.tagName === 'SPAN' ? label : label.querySelector('span');
+      if (span) span.innerText = "分析中...";
+      
       if (btn) {
         btn.style.pointerEvents = "none";
         btn.style.opacity = "0.5";
@@ -254,7 +222,8 @@
                 return;
               }
               setTimeout(() => {
-                label.innerText = originalText;
+                const span = label.tagName === 'SPAN' ? label : label.querySelector('span');
+                if (span) span.innerText = originalText;
                 if (btn) {
                   btn.style.pointerEvents = "auto";
                   btn.style.opacity = "1";
@@ -266,7 +235,8 @@
       );
     } catch (err) {
       if (DEBUG) console.warn("GGAdviser: sendGameData Error", err);
-      label.innerText = "ERROR";
+      const span = label.tagName === 'SPAN' ? label : label.querySelector('span');
+      if (span) span.innerText = "ERROR";
       if (btn) {
         btn.style.pointerEvents = "auto";
         btn.style.opacity = "1";
@@ -284,11 +254,11 @@
       e.preventDefault();
       e.stopPropagation();
 
-      const label = btn.querySelector(".button_label__ERkjz") || btn;
-      const originalText = label.innerText;
+      const span = btn.querySelector("span") || btn;
+      const originalText = span.innerText;
 
       try {
-        label.innerText = "データ取得中...";
+        span.innerText = "データ取得中...";
         
         const data = await extractBreakdownData();
 
@@ -299,20 +269,20 @@
             data ? data.error : "分析データの取得に失敗しました。",
             "error",
           );
-          label.innerText = "ERROR";
+          span.innerText = "ERROR";
           setTimeout(() => {
-            label.innerText = originalText;
+            span.innerText = originalText;
           }, 2000);
           return;
         }
 
-        await sendGameData(data, label, originalText, btn);
+        await sendGameData(data, span, originalText, btn);
 
       } catch (err) {
         if (DEBUG) console.warn("GGAdviser: Click Error", err);
-        label.innerText = "ERROR";
+        span.innerText = "ERROR";
         setTimeout(() => {
-          label.innerText = originalText;
+          span.innerText = originalText;
         }, 2000);
       }
     },
@@ -335,20 +305,12 @@
     const analyzeBtn = document.createElement("a");
     analyzeBtn.id = GG_CONSTANTS.SELECTORS.ANALYZE_BTN_ID;
     analyzeBtn.href = "#";
-    analyzeBtn.className =
-      "next-link_anchor__CQUJ3 button_link__LWagc button_variantSecondary__hvM_F";
-    analyzeBtn.style.cursor = "pointer";
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "button_wrapper__zayJ3";
+    analyzeBtn.className = "gg-map-making-btn gg-btn-summary";
 
     const label = document.createElement("span");
-    label.className = "button_label__ERkjz";
-    label.innerText = "Map Marking APP";
+    label.innerText = "Map Making APP";
 
-    wrapper.appendChild(label);
-    analyzeBtn.appendChild(wrapper);
-
+    analyzeBtn.appendChild(label);
     buttonContainer.appendChild(analyzeBtn);
   }
 
@@ -370,18 +332,12 @@
     const analyzeBtn = document.createElement("a");
     analyzeBtn.id = btnId;
     analyzeBtn.href = "#";
-    analyzeBtn.className = "next-link_anchor__CQUJ3 button_link__LWagc button_variantSecondary__hvM_F";
-    analyzeBtn.style.cssText = BUTTON_STYLES.RESULT_BTN;
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "button_wrapper__zayJ3";
+    analyzeBtn.className = "gg-map-making-btn gg-btn-result";
 
     const label = document.createElement("span");
-    label.className = "button_label__ERkjz";
-    label.innerText = "Map Marking App";
+    label.innerText = "Map Making App";
 
-    wrapper.appendChild(label);
-    analyzeBtn.appendChild(wrapper);
+    analyzeBtn.appendChild(label);
 
     analyzeBtn.onclick = (e) => {
       e.preventDefault();
@@ -401,8 +357,9 @@
       const roundIndex = roundNumber - 1;
 
       (async () => {
-        const originalText = label.innerText;
-        label.innerText = "分析中...";
+        const span = analyzeBtn.querySelector('span');
+        const originalText = span ? span.innerText : "Map Making App";
+        if (span) span.innerText = "分析中...";
         analyzeBtn.style.opacity = "0.7";
         try {
           const breakdownData = await extractBreakdownData(gameId, roundIndex);
@@ -411,12 +368,12 @@
               type: "OPEN_MAP_MAKING_APP",
               data: { ...breakdownData, promptTemplate: await getPromptTemplate() }
             });
-            label.innerText = "送信完了！";
-            setTimeout(() => { label.innerText = originalText; analyzeBtn.style.opacity = "1"; }, 2000);
+            if (span) span.innerText = "送信完了！";
+            setTimeout(() => { if (span) span.innerText = originalText; analyzeBtn.style.opacity = "1"; }, 2000);
           }
         } catch (err) {
-          label.innerText = "エラー";
-          setTimeout(() => { label.innerText = originalText; analyzeBtn.style.opacity = "1"; }, 2000);
+          if (span) span.innerText = "エラー";
+          setTimeout(() => { if (span) span.innerText = originalText; analyzeBtn.style.opacity = "1"; }, 2000);
         }
       })();
     };
@@ -445,26 +402,11 @@
     const analyzeBtn = document.createElement("a");
     analyzeBtn.id = btnId;
     analyzeBtn.href = "#";
-    analyzeBtn.className = "next-link_anchor__CQUJ3 button_link__LWagc button_variantSecondary__hvM_F button_sizeLargeWide__oGw78";
-    
-    const targetHeight = "59px";
-    const targetFontSize = "20px";
-    const targetFontWeight = "700";
-
-    analyzeBtn.style.cssText = BUTTON_STYLES.GAME_BTN(targetHeight, targetFontSize, targetFontWeight);
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "button_wrapper__zayJ3"; 
+    analyzeBtn.className = "gg-map-making-btn gg-btn-game";
 
     const label = document.createElement("span");
-    label.className = "button_label__ERkjz";
-    label.innerText = "Map Marking App";
-    // ラベルにもフォントスタイルを適用
-    label.style.fontSize = targetFontSize;
-    label.style.fontWeight = targetFontWeight;
-
-    wrapper.appendChild(label);
-    analyzeBtn.appendChild(wrapper);
+    label.innerText = "Map Making App";
+    analyzeBtn.appendChild(label);
 
     container.appendChild(analyzeBtn);
   }

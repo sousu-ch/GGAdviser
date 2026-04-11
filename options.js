@@ -162,7 +162,7 @@
     },
 
     openEditForm(id) {
-      if (!id) return;
+      if (!id || id.toString().startsWith("map-")) return;
       editingPromptId = id;
       const preset = (typeof GG_PROMPTS !== "undefined" ? GG_PROMPTS.PRESETS : []).find(p => p.id === id);
       if (!preset) return;
@@ -188,7 +188,6 @@
     bindAll() {
       Debugger.log("EventManager: Binding all events");
       if (elements.saveBtn) elements.saveBtn.onclick = () => saveAllSettings();
-      if (elements.fetchTitleBtn) elements.fetchTitleBtn.onclick = handleFetchTitle;
       if (elements.addMapBtn) elements.addMapBtn.onclick = handleAddMap;
       if (elements.showAddPromptBtn) elements.showAddPromptBtn.onclick = () => UIHandler.openEditForm(null);
       if (elements.cancelEditBtn) elements.cancelEditBtn.onclick = UIHandler.closeEditForm;
@@ -258,8 +257,6 @@
     elements = {
       // Maps
       newMapUrl: document.getElementById("new-map-url"),
-      newMapName: document.getElementById("new-map-name"),
-      fetchTitleBtn: document.getElementById("fetch-title-btn"),
       addMapBtn: document.getElementById("add-map-btn"),
       mapsListContainer: document.getElementById("maps-list-container"),
       
@@ -361,8 +358,9 @@
 
   // --- 地図操作ヘルパー (EventManagerから使用) ---
 
-  function handleFetchTitle() {
+  async function handleAddMap() {
     const url = elements.newMapUrl.value.trim();
+
     if (!url) {
       showMessage("URLを入力してください。", "error");
       return;
@@ -376,48 +374,44 @@
     }
     const mapId = mapIdMatch[1];
 
-    elements.fetchTitleBtn.disabled = true;
-    elements.fetchTitleBtn.textContent = "取得中...";
+    // ボタンを無効化して進行状況を表示
+    elements.addMapBtn.disabled = true;
+    const originalText = elements.addMapBtn.textContent;
+    elements.addMapBtn.textContent = "取得中...";
 
-    // URL ではなく ID のみを背景に送信する (セキュリティ上の根本的改善)
-    chrome.runtime.sendMessage({ action: "OBTAIN_MAP_TITLE", data: { mapId } }, (res) => {
-      elements.fetchTitleBtn.disabled = false;
-      elements.fetchTitleBtn.textContent = "タイトル自動取得";
+    try {
+      // バックグラウンドへタイトル取得を依頼
+      const res = await new Promise(resolve => {
+        chrome.runtime.sendMessage({ action: "OBTAIN_MAP_TITLE", data: { mapId } }, resolve);
+      });
 
       if (res && res.status === "success" && res.title) {
-        elements.newMapName.value = res.title;
-        showMessage("タイトルを取得しました。");
+        const newMap = {
+          id: "map-" + Date.now(),
+          name: res.title,
+          url: url
+        };
+
+        currentMapsList.push(newMap);
+        if (!currentActiveMapId) {
+          currentActiveMapId = newMap.id;
+        }
+
+        elements.newMapUrl.value = "";
+        showMessage(`地図「${res.title}」を追加しました。`);
+        
+        UIHandler.renderMaps();
+        saveAllSettings();
       } else {
-        showMessage("タイトルの取得に失敗しました。正しいマップIDか確認してください。", "error");
+        const errorMsg = res && res.message ? res.message : "タイトルの取得に失敗しました。正しいマップIDか確認してください。";
+        showMessage(errorMsg, "error");
       }
-    });
-  }
-
-  function handleAddMap() {
-    const url = elements.newMapUrl.value.trim();
-    const name = elements.newMapName.value.trim();
-
-    if (!url || !name) {
-      showMessage("URLと表示名の両方を入力して「保存して追加」を押してください。", "error");
-      return;
+    } catch (err) {
+      showMessage("エラーが発生しました。時間を置いて再度お試しください。", "error");
+    } finally {
+      elements.addMapBtn.disabled = false;
+      elements.addMapBtn.textContent = originalText;
     }
-
-    const newMap = {
-      id: "map-" + Date.now(),
-      name: name,
-      url: url
-    };
-
-    currentMapsList.push(newMap);
-    if (!currentActiveMapId) {
-      currentActiveMapId = newMap.id;
-    }
-    
-    elements.newMapUrl.value = "";
-    elements.newMapName.value = "";
-    
-    UIHandler.renderMaps();
-    saveAllSettings();
   }
 
   function deleteMap(id) {
