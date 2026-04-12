@@ -1,12 +1,12 @@
-/* GG Adviser 逕ｨ UI 繧ｳ繝ｳ繝昴・繝阪Φ繝医せ繧ｿ繧､繝ｫ */
+/* GG Adviser 用 UI コンポーネントスタイル */
 
-/* 繝倥ャ繝繝ｼ繝懊ち繝ｳ繝ｩ繝・ヱ繝ｼ */
+/* ヘッダーボタンラッパー */
 .gg-header-buttons-wrapper {
   display: flex;
   align-items: center;
 }
 
-/* 繝倥ャ繝繝ｼ繝医げ繝ｫ逕ｨ縺ｮ繝吶・繧ｹ繝懊ち繝ｳ繧ｹ繧ｿ繧､繝ｫ */
+/* ヘッダートグル用のベースボタンスタイル */
 .gg-header-button {
   padding: 4px 12px;
   border-radius: 14px;
@@ -26,9 +26,9 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* WIDE 繝懊ち繝ｳ蝗ｺ譛・*/
+/* WIDE ボタン固有 */
 .gg-wide-button {
-  margin-left: 12px; /* 繧ｻ繝・ヨ蜀・・譛蛻昴・繝懊ち繝ｳ縺ｮ繝励Λ繧､繝槭Μ繝槭・繧ｸ繝ｳ */
+  margin-left: 12px; /* セット内の最初のボタンのプライマリマージン */
 }
 
 .gg-wide-button.gg-enabled {
@@ -44,7 +44,7 @@
   border-color: #9ca3af;
 }
 
-/* AI 繝懊ち繝ｳ蝗ｺ譛・*/
+/* AI ボタン固有 */
 .gg-ai-button {
   margin-left: 8px;
 }
@@ -62,7 +62,7 @@
   border-color: #9ca3af;
 }
 
-/* Gemini 繝代ロ繝ｫ繧ｳ繝ｳ繝医Ο繝ｼ繝ｫ繝倥ャ繝繝ｼ */
+/* Gemini パネルコントロールヘッダー */
 .gg-control-header {
   background-color: #2d2e30;
   padding: 8px 16px;
@@ -80,7 +80,7 @@
   font-size: 14px;
 }
 
-/* Gemini 繝代ロ繝ｫ蜀・・蛻・梵繝懊ち繝ｳ */
+/* Gemini パネル内の分析ボタン */
 .gg-analyze-button {
   background: linear-gradient(135deg, #8ab4f8 0%, #4285f4 100%);
   color: #ffffff;
@@ -105,72 +105,395 @@
 }
 
 /* ============================================================
-   GeoGuessr デザイン完全再現 (ボタンスタイル)
+   工程 2: ゴーストモード（キャプチャ用UI最大化と隠蔽）
    ============================================================ */
 
-/* 共通ベーススタイル (本家 variantSecondary の 1:1 コピー) */
-a.gg-map-making-btn {
-  background-color: transparent !important;
-  background-image: none !important;
-  border: 1px solid rgba(255, 255, 255, 0.8) !important;
-  border-radius: 60rem !important;
-  color: oklch(0.999994 0.0000497986 23.7884) !important;
-  font-family: ggFont, "Neo Sans", sans-serif !important;
-  font-weight: 700 !important;
-  text-transform: uppercase !important;
-  letter-spacing: normal !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer !important;
-  box-sizing: border-box !important;
-  position: relative !important;
-  box-shadow: rgba(0, 0, 0, 0.25) 0px 4px 18px 0px !important;
-  transition: transform 0.15s ease-out, background-color 0.15s ease-out, border-color 0.15s ease-out !important;
-  user-select: none !important;
-  text-decoration: none !important;
+/* 1. 全体を隠す (visibility: visible で後述の要素のみ浮かび上がらせる) */
+.gg-capture-active body {
+  overflow: hidden !important;
 }
 
-/* 本家同様、テキスト部分に傾斜(oblique)を適用するための設定 */
-.gg-map-making-btn span {
-  font-style: oblique !important;
-  font-weight: 700 !important;
+/* 1. 全階層でパノラマ以外の「平行な要素（兄弟）」を非表示にする (Ghost Mode Isolation) */
+.gg-capture-active body > *:not(.gg-pano-ancestor):not([id*="ggadvice"]),
+.gg-capture-active
+  .gg-pano-ancestor:not(.gg-pano-target)
+  > *:not(.gg-pano-ancestor):not(.gg-pano-target):not([id*="ggadvice"]) {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
-.gg-map-making-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1) !important;
-  border-color: rgba(255, 255, 255, 0.8) !important;
-  transform: scale(1.02) !important;
+/* 1.5 パノラマ本体と「その内部（Canvas等）」を最優先で表示する */
+/* * セレクタを使い、内部の div や canvas が visibility: hidden を継承するのを防ぐ */
+.gg-capture-active .gg-pano-target,
+.gg-capture-active .gg-pano-target * {
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
-.gg-map-making-btn:active {
-  transform: scale(0.98) !important;
-  transition: transform 0.05s ease-out !important;
-}
-
-/* ページ別サイズ補正 */
-.gg-btn-summary {
-  font-size: 0.875rem !important; /* 14px */
-  height: 2.25rem !important;    /* 36px */
-  padding: 0 1.25rem !important;
-}
-
-.gg-btn-result {
-  font-size: 0.875rem !important;
-  height: 3rem !important; /* 48px */
-  padding: 0 1.25rem !important;
-  position: absolute !important;
-  right: -240px !important;
+/* 2. ストリートビュー本体（.gg-pano-target）を最前面に固定 */
+.gg-capture-active .gg-pano-target {
+  display: block !important;
+  position: fixed !important;
   top: 0 !important;
-  width: 220px !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 2147483647 !important;
+  background-color: #000 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  clip-path: none !important;
+  max-width: none !important;
+  max-height: none !important;
 }
 
-.gg-btn-game {
-  font-size: 1.25rem !important;  /* 20px (本家 NEXT ボタンと同等) */
-  height: 3.6875rem !important;  /* 59px (本家 NEXT ボタンと同等) */
-  padding: 0 1.5rem !important;
-  min-width: 12rem !important;
-  margin: 0 0 0 15px !important;
-  align-self: flex-start !important;
-  z-index: 999999 !important;
+/* 内部のレンダリング要素（Canvasなど）は可視化されるべきだが、UI(gmnoprint等)は継承を切りたいので
+   個別の要素に対して visibility: visible を当てるのではなく、target 自体が visible なら子も visible になる前提。
+   ただし、明示的に UI 要素を display: none にする。 */
+
+/* 万が一 Canvas が visibility: hidden を継承したり、外部から付与されている場合の保険 */
+.gg-capture-active .gg-pano-target canvas {
+  visibility: visible !important;
+}
+
+/* 2.5 親要素の制限を解除 (重要: UI要素よりも優先させるため、クラス指定を重ねて詳細度を上げる) */
+.gg-capture-active div.gg-pano-ancestor,
+.gg-capture-active section.gg-pano-ancestor,
+.gg-capture-active main.gg-pano-ancestor {
+  visibility: visible !important;
+  display: block !important; /* 万が一親が display: none の場合も解除 */
+  opacity: 1 !important;
+  transform: none !important;
+  contain: none !important;
+  perspective: none !important;
+  filter: none !important;
+  clip-path: none !important;
+  mask: none !important;
+  overflow: visible !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+/* 3. 既知のサイドバーやヘッダーを明示的に消去 (Ghost Mode 専用 / 先祖は除外) */
+.gg-capture-active [class*="Sidebar"]:not(.gg-pano-ancestor),
+.gg-capture-active [class*="Header"]:not(.gg-pano-ancestor),
+.gg-capture-active [class*="Navigation"]:not(.gg-pano-ancestor),
+.gg-capture-active
+  [class*="Overlay"]:not(.gg-pano-ancestor):not([id*="ggadvice"]) {
+  display: none !important;
+}
+
+/* 4. Google Maps 純正UIを隠す */
+.gg-capture-active .gmnoprint,
+.gg-capture-active .gm-style-cc,
+.gg-capture-active .gm-iv-address,
+.gg-capture-active .gm-style-button,
+.gg-capture-active .gm-sv-label,
+.gg-capture-active .gmnoscreen,
+.gg-capture-active a[href*="maps.google.com"],
+.gg-capture-active img[src*="staticfeed"],
+.gg-capture-active button[title*="移動"],
+.gg-capture-active button[title*="Move"],
+.gg-capture-active .gm-tap-target {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* 5. 拡張機能のUIなどは明示的に隠す (念押し) */
+.gg-capture-active [id*="ggadvice"],
+.gg-capture-active #gg-gemini-panel,
+.gg-capture-active #gg-splitter,
+.gg-capture-active .gg-header-buttons-wrapper {
+  visibility: hidden !important;
+  display: none !important;
+}
+
+/* [Step 3-2-B2] Hint Link Styling (Gemini Legacy) */
+.gg-hint-link {
+  color: #4285f4 !important; /* Gemini Blue */
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px dotted transparent;
+}
+
+.gg-hint-link:hover {
+  color: #1a73e8 !important; /* Darker Blue */
+  text-decoration: underline;
+  background-color: rgba(66, 133, 244, 0.05);
+}
+
+.gg-hint-link:active {
+  transform: scale(0.98);
+}
+
+/* [Step 3-2-B4] Legacy Highlight Style (Amber) */
+.gg-active-amber {
+  background-color: rgba(255, 171, 0, 0.3) !important; /* Visible Amber */
+  color: #e65100 !important;
+  font-weight: 600;
+}
+
+/* [Step 3-2-B4] Legacy Selection Style (Blue) */
+.gg-active-blue {
+  background-color: #1a73e8 !important; /* Solid Blue */
+  color: #fff !important; /* White text */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  z-index: 10 !important;
+  border-radius: 4px; /* Ensure rounded corners like amber */
+}
+
+/* [Step 3-2-C] Legacy-Match Stream UI */
+.gg-stream-raw {
+  /* Gemini のネイティブな外観を模倣 */
+  /* 安全なフォールバックで Gemini のネイティブな外観を模倣 */
+  font-family: "Google Sans", Roboto, "Segoe UI", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #1f1f1f; /* Gemini デフォルトテキスト */
+
+  /* コンテナスタイル */
+  background-color: #ffffff;
+  padding: 16px 20px;
+  border-radius: 8px; /* わずかな丸み */
+  margin: 8px 0;
+}
+
+.gg-stream-raw p {
+  margin-bottom: 16px;
+}
+
+.gg-stream-raw h1,
+.gg-stream-raw h2,
+.gg-stream-raw h3 {
+  font-family: "Google Sans", Roboto, sans-serif;
+  color: #1f1f1f;
+  font-weight: bold;
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+.gg-stream-raw h1 {
+  font-size: 20px;
+  border-bottom: 2px solid #ccc;
+  margin-top: 12px;
+}
+
+.gg-stream-raw h2 {
+  font-size: 18px;
+  border-bottom: 1px solid #ddd;
+}
+
+.gg-stream-raw h3 {
+  font-size: 16px;
+}
+
+.gg-stream-raw ul,
+.gg-stream-raw ol {
+  padding-left: 20px;
+  margin: 8px 0;
+}
+
+.gg-stream-raw li {
+  margin-bottom: 4px;
+}
+/* [Step 3-2-C-2] 分析モードのスタイリング (Gemini Clean V2 - ミニマリスト) */
+
+/* グローバルセクション (コンパクト) */
+.gg-global-section.compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  background: #e8eaed; /* [Step 3-2-K] グレー 200 */
+  border-radius: 8px;
+}
+
+/* グローバルセクション (チップ) - ヘッダーブロックスタイル */
+.gg-global-section {
+  background-color: #e8eaed; /* [Step 3-2-K] グレー 200 (より明確な分離) */
+  border-radius: 8px;
+  padding: 12px;
+  margin: 12px 12px 16px 12px; /* 下部マージンを増加 */
+  box-shadow: none;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: #3c4043;
+}
+
+/* 情報チップ (国など) - フローティングカードスタイル */
+.gg-info-chip {
+  background-color: #ffffff;
+  border: none; /* 下のカードに合わせて境界線を削除 */
+  border-radius: 8px; /* カードの半径に合わせる */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* カードシャドウに合わせる */
+  padding: 6px 12px;
+  font-size: 16px; /* [Step 3-2-F] 16px に増加 */
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #3c4043;
+  transition: all 0.2s ease;
+}
+
+.gg-info-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* ディバイダー (削除済み) */
+.gg-meta-divider {
+  display: none; /* [Step 3-2-G] ブロック分離のために削除 */
+}
+
+/* リストコンテナ */
+.gg-clue-list-ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 12px 24px 12px;
+}
+
+/* リストアイテム (カードスタイル) */
+.gg-clue-li {
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  margin-bottom: 8px; /* カード間のスペース */
+  padding: 16px;
+  position: relative;
+  transition: all 0.2s ease;
+  border: 1px solid transparent; /* 境界線ハイライトの準備 */
+}
+
+/* ヘッダー行 (Flex: タイトル + タグ) */
+.gg-clue-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.gg-clue-title {
+  font-size: 16px; /* [Step 3-2-E] サイズ増加 */
+  font-weight: 700;
+  color: #202124;
+  line-height: 1.4;
+  padding-right: 8px;
+}
+
+/* タグ (ゴーストバッジ) */
+.gg-clue-tag {
+  font-size: 11px;
+  font-weight: 500;
+  color: #5f6368;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
+  margin-left: auto; /* [Step 3-2-Fix] 右寄せを強制 */
+  /* 背景なし - ゴーストスタイル */
+}
+
+/* 本文テキスト */
+.gg-clue-body {
+  font-size: 16px; /* [Step 3-2-F] 16px に増加 */
+  line-height: 1.6;
+  color: #3c4043;
+}
+
+/* 国旗アイコン */
+.gg-flag-icon {
+  width: 20px;
+  height: auto;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================================
+   インタラクション状態 (厳格に維持)
+   これらはクリーンなカードスタイルを上書きする必要がある。
+   ============================================================ */
+
+/* ホバー状態 (薄いオレンジ) */
+/* 有効な場合、.gg-clue-li.gg-clue-hover または単に :hover に適用 */
+.gg-clue-li:hover {
+  background-color: rgba(255, 171, 0, 0.05); /* 控えめなオレンジホバー */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* 明示的なオレンジハイライト (レガシー) */
+.gg-active-amber,
+.gg-clue-li.gg-clue-hover {
+  background-color: rgba(255, 171, 0, 0.15) !important;
+  border-color: rgba(255, 171, 0, 0.3) !important;
+}
+
+/* 明示的な青色選択 (レガシー) */
+.gg-active-blue,
+.gg-clue-li.selected {
+  background-color: #1a73e8 !important; /* ソリッドブルー */
+  color: #ffffff !important;
+  border-color: #185abc !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(26, 115, 232, 0.3) !important;
+}
+
+/* 選択時に子テキストの色を白にする */
+.gg-clue-li.selected .gg-clue-title,
+.gg-clue-li.selected .gg-clue-body,
+.gg-clue-li.selected .gg-clue-tag {
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* ============================================================
+   チャット UI (Step 3-3-E1-b)
+   ============================================================ */
+
+#gg-chat-container {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gg-chat-bubble {
+  max-width: 100%;
+  padding: 8px 8px;
+  border-radius: 18px;
+  font-size: 15px;
+  line-height: 1.5;
+  word-wrap: break-word;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* ユーザーメッセージ (右寄せ) */
+.gg-chat-bubble-user {
+  align-self: flex-end;
+  background-color: #d3e3fd; /* ライト Gemini ブルー */
+  color: #041e49;
+  border-bottom-right-radius: 4px; /* 特徴的なバブルテール */
+}
+
+/* AI メッセージ (左寄せ) */
+.gg-chat-bubble-ai {
+  align-self: flex-start;
+  background-color: #ffffff;
+  color: #1f1f1f;
+  border: 1px solid #e0e0e0;
+  border-bottom-left-radius: 4px;
+}
+
+/* ストリームビューラッパー調整 (バブル内の場合) */
+.gg-chat-bubble-ai .gg-stream-raw {
+  padding: 0 !important;
+  white-space: normal;
 }

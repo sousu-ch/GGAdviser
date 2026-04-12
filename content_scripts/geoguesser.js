@@ -1,5 +1,7 @@
-// Geoguesser Breakdown 画面用スクリプト
-(function () {
+if (!window.location.hostname.includes("geoguessr.com")) {
+  console.log("[GGAdviser] Script execution skipped on this domain.");
+} else {
+  (function () {
   const DEBUG = false;
   
   // --- インターセプター戦略のグローバル状態 ---
@@ -487,3 +489,4 @@
   }
 
 })();
+}

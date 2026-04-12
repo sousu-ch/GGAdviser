@@ -1,0 +1,72 @@
+/* GGAdviser: GeoGuessr-specific UI Restore (Native Look) */
+
+/* ============================================================
+   GeoGuessr デザイン完全再現 (ボタンスタイル)
+   ============================================================ */
+
+/* 共通ベーススタイル (本家 variantSecondary の 1:1 コピー) */
+a.gg-map-making-btn {
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  border-radius: 60rem !important;
+  color: oklch(0.999994 0.0000497986 23.7884) !important;
+  font-family: ggFont, "Neo Sans", sans-serif !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: normal !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 4px 18px 0px !important;
+  transition: transform 0.15s ease-out, background-color 0.15s ease-out, border-color 0.15s ease-out !important;
+  user-select: none !important;
+  text-decoration: none !important;
+}
+
+/* 本家同様、テキスト部分に傾斜(oblique)を適用するための設定 */
+.gg-map-making-btn span {
+  font-style: oblique !important;
+  font-weight: 700 !important;
+}
+
+.gg-map-making-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.8) !important;
+  transform: scale(1.02) !important;
+}
+
+.gg-map-making-btn:active {
+  transform: scale(0.98) !important;
+  transition: transform 0.05s ease-out !important;
+}
+
+/* ページ別サイズ補正 */
+.gg-btn-summary {
+  font-size: 0.875rem !important; /* 14px */
+  height: 2.25rem !important;    /* 36px */
+  padding: 0 1.25rem !important;
+}
+
+.gg-btn-result {
+  font-size: 0.875rem !important;
+  height: 3rem !important; /* 48px */
+  padding: 0 1.25rem !important;
+  position: absolute !important;
+  right: -240px !important;
+  top: 0 !important;
+  width: 220px !important;
+}
+
+.gg-btn-game {
+  font-size: 1.25rem !important;  /* 20px (本家 NEXT ボタンと同等) */
+  height: 3.6875rem !important;  /* 59px (本家 NEXT ボタンと同等) */
+  padding: 0 1.5rem !important;
+  min-width: 12rem !important;
+  margin: 0 0 0 15px !important;
+  align-self: flex-start !important;
+  z-index: 999999 !important;
+}
