@@ -278,16 +278,27 @@
     function _getLatestModelMessage() {
       // AI 回答にのみ付随するフィードバックボタン（良い回答 / Good response）をフックにする
       const feedbackButtons = document.querySelectorAll('[aria-label="良い回答"], [aria-label="Good response"], [aria-label="悪い回答"], [aria-label="Bad response"]');
-      if (feedbackButtons.length === 0) return null;
-
-      // 最後のボタン（＝最新のメッセージブロック）を特定
-      const latestButton = feedbackButtons[feedbackButtons.length - 1];
       
-      // ボタンが含まれるメッセージコンテナを特定（article または role="model" に類する親要素）
-      return latestButton.closest('.model-response-container') || 
-             latestButton.closest('article') || 
-             latestButton.parentElement.closest('[role="region"]') ||
-             latestButton.parentElement.parentElement;
+      if (feedbackButtons.length > 0) {
+        // 最後のボタン（＝最新のメッセージブロック）を特定
+        const latestButton = feedbackButtons[feedbackButtons.length - 1];
+        
+        // ボタンが含まれるメッセージコンテナを特定（2026年最新DOMに対応するセレクター）
+        const container = latestButton.closest('response-container') ||
+                          latestButton.closest('.response-container') ||
+                          latestButton.closest('model-response') ||
+                          latestButton.closest('.model-response-container') || 
+                          latestButton.closest('article');
+        if (container) return container;
+      }
+
+      // フィードバックボタンがまだない（生成完了直後など）場合の代替セレクター
+      const modelContainers = document.querySelectorAll('response-container, .response-container, model-response, .model-response-container, article');
+      if (modelContainers.length > 0) {
+        return modelContainers[modelContainers.length - 1];
+      }
+
+      return null;
     }
 
     const targetNode = document.body;
@@ -311,9 +322,28 @@
         // テキストが落ち着くまでポーリングで待機 (最大5秒)
         (async () => {
           for (let attempt = 0; attempt < 10; attempt++) {
-            const bodyText = document.body.innerText;
+            const modelEl = _getLatestModelMessage();
+            let textToParse = "";
+
+            if (modelEl) {
+              textToParse = modelEl.innerText;
+            } else {
+              // フォールバック: レンダリング初期フェーズでモデル要素がまだ見つからない場合、
+              // もしくは将来のUI変更でセレクターが全滅した場合は全体の bodyText を使用する。
+              // ただし、ユーザー入力エリア内のテンプレート誤判定を防を防ぐため、入力テキストを除去する。
+              let bodyText = document.body.innerText;
+              const inputArea = findInputArea();
+              if (inputArea) {
+                const inputText = inputArea.innerText || inputArea.value || "";
+                if (inputText && bodyText.includes(inputText)) {
+                  bodyText = bodyText.replace(inputText, "");
+                }
+              }
+              textToParse = bodyText;
+            }
+
             if (parser) {
-              const parseResult = parser.parse(bodyText);
+              const parseResult = parser.parse(textToParse);
               // 有効なデータが見つかれば送信
               if (parseResult.data && (parseResult.data.global_clues || parseResult.data.is_fallback)) {
                 window.dispatchEvent(
