@@ -47,11 +47,6 @@
   // ========================================================================================================
   // グローバルシングルトン: 永続的な画像インジェクター
   // ========================================================================================================
-  /* 
-  // [DELETED] ImageInjector Legacy Code
-  const globalInjector =
-    typeof ImageInjector !== "undefined" ? new ImageInjector() : null;
-  */
   const parser =
     typeof ResponseParser !== "undefined" ? new ResponseParser() : null;
 
@@ -59,6 +54,7 @@
   let generationObserver = null;
   let isGenerating = false;
   let isStopRequested = false; // 生成前のキャンセルキャンセル不可フラグ
+  let lastSentText = ""; // Memory storage to prevent duplicate recovery
 
   // 双方向同期フォーカス (グリッド -> チャット)の状態
   let currentSelected = null; // { coord, imgIndex }
@@ -121,8 +117,6 @@
    * @returns {Promise<void>}
    */
   async function executeInjection(data) {
-
-    chrome.storage.local.remove(GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA); // 開始時に移動
 
     isStopRequested = false; // 開始時にフラグをリセット
 
@@ -323,29 +317,32 @@
         (async () => {
           for (let attempt = 0; attempt < 10; attempt++) {
             const modelEl = _getLatestModelMessage();
-            let textToParse = "";
-
-            if (modelEl) {
-              textToParse = modelEl.innerText;
-            } else {
-              // フォールバック: レンダリング初期フェーズでモデル要素がまだ見つからない場合、
-              // もしくは将来のUI変更でセレクターが全滅した場合は全体の bodyText を使用する。
-              // ただし、ユーザー入力エリア内のテンプレート誤判定を防を防ぐため、入力テキストを除去する。
-              let bodyText = document.body.innerText;
-              const inputArea = findInputArea();
-              if (inputArea) {
-                const inputText = inputArea.innerText || inputArea.value || "";
-                if (inputText && bodyText.includes(inputText)) {
-                  bodyText = bodyText.replace(inputText, "");
-                }
-              }
-              textToParse = bodyText;
+            if (!modelEl) {
+              // まだAIの回答コンテナが出現していない場合は、次のMutationを待つために少し待機してcontinue
+              await new Promise((r) => setTimeout(r, 500));
+              continue;
             }
+
+            let textToParse = modelEl.innerText;
 
             if (parser) {
               const parseResult = parser.parse(textToParse);
-              // 有効なデータが見つかれば送信
-              if (parseResult.data && (parseResult.data.global_clues || parseResult.data.is_fallback)) {
+              
+              // 厳格な回収成功条件（プロンプト等への誤判定を完全に防ぐ）
+              const text = textToParse || "";
+              const hasMarkers = text.includes("[解説開始]") && text.includes("[解説終了]");
+              const isNewText = parseResult.text && parseResult.text.trim() !== lastSentText;
+
+              // 有効なデータが見つかり、新しくかつ解説マーカーが揃っている場合のみ送信
+              if (parseResult.data && isNewText && hasMarkers) {
+                // メモリ上の履歴を更新
+                lastSentText = parseResult.text.trim();
+
+                // 正常にパース・回収できた段階でストレージからFINAL_DATAをクリーンアップする
+                try {
+                  chrome.storage.local.remove(GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA);
+                } catch (e) {}
+
                 window.dispatchEvent(
                   new CustomEvent(GG_CONSTANTS.EVENTS.GAME_DATA_FETCH, {
                     detail: parseResult.data,
@@ -366,7 +363,7 @@
                 return; // 成功
               }
             }
-            // まだ見つからない場合は 500ms 待機して再試行
+            // まだ見つからないか条件を満たさない場合は 500ms 待機して再試行
             await new Promise((r) => setTimeout(r, 500));
           }
           _warn("Generation ended but valid data not found after 5 seconds polling.");
@@ -378,11 +375,15 @@
   }
 
   function _isStopButtonVisible() {
-    // Gemini 生成に特有の「停止」ボタンを探す
-    const stopBtn = document.querySelector(
-      'button[aria-label*="Stop"], button[aria-label*="停止"], button[aria-label*="生成を停止"]',
+    // 1. 送信入力エリアのラッパーを特定
+    const inputAreaContainer = document.querySelector('input-area-v2, .input-area-container, div.input-area');
+    if (!inputAreaContainer) return false;
+
+    // 2. そのエリア内に停止ボタンが存在するかのみで判定（存在＝生成中。表示計算ラグ offsetParent を完全回避）
+    const stopBtn = inputAreaContainer.querySelector(
+      'button[aria-label*="Stop"], button[aria-label*="停止"], button[aria-label*="生成を停止"], button[aria-label*="回答を停止"]'
     );
-    return stopBtn && stopBtn.offsetParent !== null; // 可視性をチェック
+    return !!stopBtn;
   }
 
   // 双方向通信とハイライト
@@ -434,16 +435,13 @@
         // 0. 中止フラグを設定 (生成前)
         isStopRequested = true;
 
-        // 1. ネイティブの停止ボタンをクリック
-        const stopBtn = document.querySelector(
-          'button[aria-label*="Stop"], button[aria-label*="停止"], button[aria-label*="生成を停止"]',
-        );
-        if (stopBtn && stopBtn.offsetParent !== null) {
+        // 1. ネイティブの停止ボタンをクリック (入力エリア内から最新のラベルを含めて探す)
+        const inputArea = document.querySelector('input-area-v2, .input-area-container, div.input-area');
+        const stopBtn = inputArea ? inputArea.querySelector(
+          'button[aria-label*="Stop"], button[aria-label*="停止"], button[aria-label*="生成を停止"], button[aria-label*="回答を停止"]'
+        ) : null;
+        if (stopBtn) {
           stopBtn.click();
-          
-
-        } else {
-
         }
 
         // 2. オブザーバーを切断
