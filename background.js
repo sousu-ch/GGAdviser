@@ -21,8 +21,30 @@ chrome.runtime.onInstalled.addListener(() => {
   initStorageOnInstalled();
 });
 
-chrome.runtime.onMessageExternal.addListener(handleMessage);
+chrome.runtime.onMessageExternal.addListener(handleExternalMessage);
 chrome.runtime.onMessage.addListener(handleMessage);
+
+// 外部Webページ（GeoGuessr）からのメッセージハンドラー
+function handleExternalMessage(request, sender, sendResponse) {
+  // セキュリティ対策 1: 送信元オリジンの厳格な検証
+  const allowedOrigin = "https://www.geoguessr.com";
+  if (!sender.origin || sender.origin !== allowedOrigin) {
+    sendResponse({ error: "Unauthorized origin" });
+    return;
+  }
+
+  const action = request.action || request.type;
+  
+  // セキュリティ対策 2: 外部から実行可能なアクションを最小限に制限 (PING, DATA_COLLECTED のみ)
+  const allowedExternalActions = ["PING", "DATA_COLLECTED"];
+  if (!allowedExternalActions.includes(action)) {
+    sendResponse({ error: "Action not allowed from external context" });
+    return;
+  }
+
+  // 許可された安全なメッセージのみを通常のハンドラーに中継する
+  return handleMessage(request, sender, sendResponse);
+}
 
 // 統合メッセージハンドラールーター
 function handleMessage(request, sender, sendResponse) {

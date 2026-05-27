@@ -86,7 +86,13 @@
           (custom.name !== undefined && custom.name !== p.name) ||
           (custom.description !== undefined && custom.description !== p.description)
         );
-        return { ...p, isModified, isActive: p.id === currentActivePromptId };
+        return { 
+          ...p, 
+          name: (custom && custom.name) ? custom.name : p.name,
+          description: (custom && custom.description) ? custom.description : p.description,
+          isModified, 
+          isActive: p.id === currentActivePromptId 
+        };
       });
 
       if (displayList.length === 0) {
@@ -101,7 +107,7 @@
 
         const infoDiv = document.createElement("div");
         infoDiv.className = "map-info";
-        infoDiv.innerHTML = `<div class="map-name">${p.name}${p.isModified ? " (編集済み)" : ""}${p.isActive ? ' <span class="map-active-badge">使用中</span>' : ""}</div><div class="map-url">${p.description}</div>`;
+        infoDiv.innerHTML = `<div class="map-name">${escapeHTML(p.name)}${p.isModified ? " (編集済み)" : ""}${p.isActive ? ' <span class="map-active-badge">使用中</span>' : ""}</div><div class="map-url">${escapeHTML(p.description)}</div>`;
         
         const actionsDiv = document.createElement("div");
         actionsDiv.className = "actions";

@@ -18,7 +18,7 @@
           .json()
           .then((data) => {
 
-            window.postMessage({ type: "GG_GAME_DATA_FETCH", data: data }, "*");
+            window.postMessage({ type: "GG_GAME_DATA_FETCH", data: data }, window.location.origin);
           })
           .catch((e) => {}); // json エラーを無視
       }
@@ -43,7 +43,7 @@
       if (res.ok) {
         const data = await res.json();
 
-        window.postMessage({ type: "GG_GAME_DATA_FETCH", data: data }, "*");
+        window.postMessage({ type: "GG_GAME_DATA_FETCH", data: data }, window.location.origin);
       } else {
         if (DEBUG) console.warn("GGAdviser Interceptor: Active Fetch Failed", res.status);
       }
