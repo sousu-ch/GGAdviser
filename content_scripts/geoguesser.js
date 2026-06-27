@@ -37,6 +37,16 @@ if (!window.location.hostname.includes("geoguessr.com")) {
    */
   function getSelectedRoundIndex(totalRounds) {
     try {
+      // 0. URL Query Parameter Logic (Most reliable for summary pages)
+      const urlParams = new URLSearchParams(window.location.search);
+      const roundParam = urlParams.get('round');
+      if (roundParam) {
+        const r = parseInt(roundParam, 10);
+        if (!isNaN(r) && r > 0) {
+          return r - 1;
+        }
+      }
+
       // 1. Game Page Logic (High Priority)
       if (location.pathname.includes("/game/")) {
         // 1. 複数のセレクタを順に試して、現在のラウンド数インジケーターを取得
@@ -71,7 +81,7 @@ if (!window.location.hostname.includes("geoguessr.com")) {
       
       const roundElements = summaryItems.filter(
         (el) =>
-          el.className.includes("playedRound__") &&
+          (el.className.includes("playedRound__") || el.className.includes("roundCard__")) &&
           !el.className.includes("playedRounds"),
       );
 
@@ -159,7 +169,7 @@ if (!window.location.hostname.includes("geoguessr.com")) {
   /**
    * 抽出されたデータを処理し、Prompt Template を付与して background へ送信する共通関数。
    */
-  async function sendGameData(data, label, originalText, btn) {
+  async function sendGameData(data, label, originalHTML, btn) {
     try {
       const span = label.tagName === 'SPAN' ? label : label.querySelector('span');
       if (span) span.innerText = "分析中...";
@@ -220,15 +230,30 @@ if (!window.location.hostname.includes("geoguessr.com")) {
                   "接続が切れました。ページをリロードしてください。",
                   "error",
                 );
-                label.innerText = "ERROR";
+                if (span) span.innerText = "ERROR";
+                
+                // エラー表示後、2秒後に元のHTMLに復旧させる
+                setTimeout(() => {
+                  if (btn && originalHTML) {
+                    btn.innerHTML = originalHTML;
+                    btn.style.pointerEvents = "auto";
+                    btn.style.opacity = "1";
+                  }
+                }, 2000);
                 return;
               }
               setTimeout(() => {
-                const span = label.tagName === 'SPAN' ? label : label.querySelector('span');
-                if (span) span.innerText = originalText;
-                if (btn) {
+                if (btn && originalHTML) {
+                  btn.innerHTML = originalHTML;
                   btn.style.pointerEvents = "auto";
                   btn.style.opacity = "1";
+                } else {
+                  const span = label.tagName === 'SPAN' ? label : label.querySelector('span');
+                  if (span) span.innerText = originalHTML;
+                  if (btn) {
+                    btn.style.pointerEvents = "auto";
+                    btn.style.opacity = "1";
+                  }
                 }
               }, 3000);
             },
@@ -237,11 +262,17 @@ if (!window.location.hostname.includes("geoguessr.com")) {
       );
     } catch (err) {
       if (DEBUG) console.warn("GGAdviser: sendGameData Error", err);
-      const span = label.tagName === 'SPAN' ? label : label.querySelector('span');
-      if (span) span.innerText = "ERROR";
-      if (btn) {
+      if (btn && originalHTML) {
+        btn.innerHTML = originalHTML;
         btn.style.pointerEvents = "auto";
         btn.style.opacity = "1";
+      } else {
+        const span = label.tagName === 'SPAN' ? label : label.querySelector('span');
+        if (span) span.innerText = "ERROR";
+        if (btn) {
+          btn.style.pointerEvents = "auto";
+          btn.style.opacity = "1";
+        }
       }
     }
   }
@@ -257,7 +288,7 @@ if (!window.location.hostname.includes("geoguessr.com")) {
       e.stopPropagation();
 
       const span = btn.querySelector("span") || btn;
-      const originalText = span.innerText;
+      const originalHTML = btn.innerHTML;
 
       try {
         span.innerText = "データ取得中...";
@@ -273,18 +304,18 @@ if (!window.location.hostname.includes("geoguessr.com")) {
           );
           span.innerText = "ERROR";
           setTimeout(() => {
-            span.innerText = originalText;
+            btn.innerHTML = originalHTML;
           }, 2000);
           return;
         }
 
-        await sendGameData(data, span, originalText, btn);
+        await sendGameData(data, span, originalHTML, btn);
 
       } catch (err) {
         if (DEBUG) console.warn("GGAdviser: Click Error", err);
         span.innerText = "ERROR";
         setTimeout(() => {
-          span.innerText = originalText;
+          btn.innerHTML = originalHTML;
         }, 2000);
       }
     },
@@ -295,24 +326,26 @@ if (!window.location.hostname.includes("geoguessr.com")) {
    * Geoguessr の結果サマリーページに ANALYZE ボタンを挿入する。
    */
   function injectAnalyzeButton() {
-    const buttonContainer = document.querySelector(
-      GG_CONSTANTS.SELECTORS.GAME_SUMMARY_CONTAINER,
-    );
+    const buttonContainer = document.querySelector('[role="tablist"]');
     if (
       !buttonContainer ||
       document.getElementById(GG_CONSTANTS.SELECTORS.ANALYZE_BTN_ID)
     )
       return;
 
-    const analyzeBtn = document.createElement("a");
+    const analyzeBtn = document.createElement("button");
     analyzeBtn.id = GG_CONSTANTS.SELECTORS.ANALYZE_BTN_ID;
-    analyzeBtn.href = "#";
-    analyzeBtn.className = "gg-map-making-btn gg-btn-summary";
+    analyzeBtn.type = "button";
+    analyzeBtn.className = "tabs_trigger__KOf2y gg-map-making-tab-btn";
 
-    const label = document.createElement("span");
-    label.innerText = "Map Making APP";
+    analyzeBtn.innerHTML = `
+      <span>
+        <span class="gg-map-making-icon"></span>
+        <span class="duel-breakdown_tabLabelFull__jFgO_">Map Making App</span>
+        <span class="duel-breakdown_tabLabelShort__tfiLz">MAP</span>
+      </span>
+    `;
 
-    analyzeBtn.appendChild(label);
     buttonContainer.appendChild(analyzeBtn);
   }
 

@@ -70,3 +70,42 @@ a.gg-map-making-btn {
   align-self: flex-start !important;
   z-index: 999999 !important;
 }
+
+/* ============================================================
+   新しい上部メニュー用タブボタンスタイル
+   ============================================================ */
+
+button.gg-map-making-tab-btn {
+  border: 1px dashed #f5a623 !important;
+  color: #f5a623 !important;
+  margin-left: 10px !important;
+  padding: 0 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  cursor: pointer !important;
+}
+
+button.gg-map-making-tab-btn:hover {
+  background-color: rgba(245, 166, 35, 0.1) !important;
+}
+
+/* アイコン制御 (SVGマスク使用) */
+.gg-map-making-icon {
+  display: inline-block !important;
+  width: 16px !important;
+  height: 16px !important;
+  background-color: #f5a623 !important;
+  margin-right: 6px !important;
+  mask: url(/_next/static/media/view-location.420319a4.svg) no-repeat center !important;
+  -webkit-mask: url(/_next/static/media/view-location.420319a4.svg) no-repeat center !important;
+  vertical-align: middle !important;
+}
+
+/* 本家同様、テキスト部分に傾斜(oblique)を適用 */
+.gg-map-making-tab-btn span {
+  font-style: oblique !important;
+  font-weight: 700 !important;
+}
+

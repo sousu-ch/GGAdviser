@@ -7,11 +7,11 @@
 (typeof self !== 'undefined' ? self : window).GG_CONSTANTS = {
     SELECTORS: {
         // Geoguessr UI
-        ROUND_ITEM: '[class*="game-summary_playedRound"]',
+        ROUND_ITEM: '[class*="game-summary_playedRound"], [class*="duel-breakdown_roundCard"]',
         ANALYZE_BTN_ID: 'gg-analyze-btn',
         NEXT_DATA_ID: '__NEXT_DATA__',
         GAME_SUMMARY_CONTAINER: 'div[class*="buttons_buttons"]',
-        SELECTED_ROUND: '[class*="game-summary_selectedRound"]',
+        SELECTED_ROUND: '[class*="game-summary_selectedRound"], [class*="duel-breakdown_selectedRound"]',
         ROUND_NUMBER: '[data-qa="round-number"], [class*="styles_round"], [class*="round-number_indicator"]',
         
         // Map-making.app UI
