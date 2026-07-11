@@ -33,8 +33,11 @@ export async function blobToDataUrl(blob) {
   const buffer = await blob.arrayBuffer();
   const bytes = new Uint8Array(buffer);
   let binary = "";
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  const len = bytes.byteLength;
+  const CHUNK_SIZE = 0x8000; // 32KB。大きな画像でのスタックオーバーフローと過度の連結を回避
+  for (let i = 0; i < len; i += CHUNK_SIZE) {
+    const chunk = bytes.subarray(i, Math.min(i + CHUNK_SIZE, len));
+    binary += String.fromCharCode.apply(null, chunk);
   }
   return `data:${blob.type};base64,${btoa(binary)}`;
 }

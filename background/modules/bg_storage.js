@@ -67,12 +67,3 @@ export async function getActiveMapUrl() {
   const activeMap = mapsList.find(m => m.id === activeId);
   return activeMap ? activeMap.url : "";
 }
-
-/**
- * キャプチャ権限の許可が必要なタブの ID リストをストレージに保存する。
- * @param {number[]} tabs タブ ID の配列。
- * @returns {Promise<void>}
- */
-export async function setCaptureTabs(tabs) {
-  await chrome.storage.local.set({ captureTabs: tabs });
-}

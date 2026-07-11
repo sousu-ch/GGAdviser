@@ -92,20 +92,29 @@ const ToastManager = {
         const iconMap = {
             info: '🔵',
             success: '✅',
-            error: '🚨'
+            error: '🚨',
+            warning: '⚠️'
         };
 
-        toast.innerHTML = `
-            <div class="gg-toast-icon">${iconMap[type] || '✨'}</div>
-            <div class="gg-toast-content">
-                <div class="gg-toast-title">${title}</div>
-                <div class="gg-toast-message">${message}</div>
-            </div>
-        `;
+        const iconDiv = document.createElement('div');
+        iconDiv.className = 'gg-toast-icon';
+        iconDiv.textContent = iconMap[type] || '✨';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'gg-toast-content';
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'gg-toast-title';
+        titleDiv.textContent = title;
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'gg-toast-message';
+        msgDiv.textContent = message;
+
+        contentDiv.append(titleDiv, msgDiv);
+        toast.append(iconDiv, contentDiv);
 
         toast.onclick = () => this.remove(toast);
-        this.container.appendChild(toast);
-
         this.container.appendChild(toast);
 
         // スライドイン

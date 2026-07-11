@@ -69,33 +69,6 @@ class StateManager {
     }
 
     /**
-     * 一度に複数の値を設定する。
-     * @param {Object} updates - キーと新しい値を持つオブジェクト。
-     * @param {boolean} silent - true の場合、保存と通知をスキップする。
-     */
-    setBatch(updates, silent = false) {
-        const changed = [];
-        for (const [key, value] of Object.entries(updates)) {
-            if (this.state[key] !== value) {
-                const oldValue = this.state[key];
-                this.state[key] = value;
-                changed.push({ key, value, oldValue });
-            }
-        }
-
-        if (changed.length > 0 && !silent) {
-            const toSave = {};
-            changed.forEach(c => {
-                toSave[c.key] = c.value;
-                // this._log(`Update: ${c.key} -> ${c.value}`);
-            });
-            chrome.storage.local.set(toSave);
-
-            changed.forEach(c => this.notify(c.key, c.value, c.oldValue));
-        }
-    }
-
-    /**
      * 状態変更のリスナーを追加する。
      * @param {Function} callback - Function(key, value, oldValue).
      */

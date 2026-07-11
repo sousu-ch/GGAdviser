@@ -4,6 +4,8 @@
  * (Background Service Worker 内で完結させるため、OffscreenCanvas を使用)
  */
 
+import { blobToDataUrl } from "../modules/bg_utils.js";
+
 export class ImageMergeService {
   /**
    * 4枚の画像を結合する
@@ -72,16 +74,6 @@ export class ImageMergeService {
 
     // 4. Blobに出力し、DataURLとして返す
     const blob = await canvas.convertToBlob({ type: "image/jpeg", quality: 0.85 });
-    return this.blobToDataUrl(blob);
-  }
-
-  async blobToDataUrl(blob) {
-    const buffer = await blob.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
-    let binary = "";
-    for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
-    return `data:${blob.type};base64,${btoa(binary)}`;
+    return blobToDataUrl(blob);
   }
 }

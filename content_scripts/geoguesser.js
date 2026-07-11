@@ -19,6 +19,7 @@ if (!window.location.hostname.includes("geoguessr.com")) {
 
   // --- パッシブデータリスナー ---
   window.addEventListener("message", (event) => {
+    if (event.origin !== "https://www.geoguessr.com") return;
     if (event.source !== window) return;
     if (event.data && event.data.type === GG_CONSTANTS.EVENTS.GAME_DATA_FETCH) {
       window.lastCapturedGameData = event.data.data;
@@ -374,45 +375,7 @@ if (!window.location.hostname.includes("geoguessr.com")) {
 
     analyzeBtn.appendChild(label);
 
-    analyzeBtn.onclick = (e) => {
-      e.preventDefault();
-      const selectedCol = document.querySelector('.coordinate-results_selectedColumn__pyhOZ');
-      
-      let roundNumber = 1;
-      if (selectedCol) {
-        const roundMatch = selectedCol.innerText.match(/Round\s+(\d+)/i);
-        if (roundMatch) {
-          roundNumber = parseInt(roundMatch[1], 10);
-        } else if (selectedCol.innerText.includes('Total')) {
-          window.ToastManager?.show("通知", "Round 1 を表示します（ラウンドを選択すると切り替わります）", "info");
-        }
-      }
-
-      const gameId = location.pathname.split("/").pop();
-      const roundIndex = roundNumber - 1;
-
-      (async () => {
-        const span = analyzeBtn.querySelector('span');
-        const originalText = span ? span.innerText : "Map Making App";
-        if (span) span.innerText = "分析中...";
-        analyzeBtn.style.opacity = "0.7";
-        try {
-          const breakdownData = await extractBreakdownData(gameId, roundIndex);
-          if (breakdownData) {
-            chrome.runtime.sendMessage({
-              type: "OPEN_MAP_MAKING_APP",
-              data: { ...breakdownData, promptTemplate: await getPromptTemplate() }
-            });
-            if (span) span.innerText = "送信完了！";
-            setTimeout(() => { if (span) span.innerText = originalText; analyzeBtn.style.opacity = "1"; }, 2000);
-          }
-        } catch (err) {
-          if (span) span.innerText = "エラー";
-          setTimeout(() => { if (span) span.innerText = originalText; analyzeBtn.style.opacity = "1"; }, 2000);
-        }
-      })();
-    };
-
+    // クリック処理は下部のグローバル委譲リスナー（[id^='gg-analyze-btn']）が担当する。
     container.appendChild(analyzeBtn);
   }
 
@@ -496,30 +459,6 @@ if (!window.location.hostname.includes("geoguessr.com")) {
       );
     }
   });
-
-  /**
-   * 現在アクティブなプロンプトテンプレートを取得するヘルパー。
-   */
-  async function getPromptTemplate() {
-    return new Promise(resolve => {
-        chrome.storage.local.get([GG_CONSTANTS.STORAGE_KEYS.ACTIVE_PROMPT_ID], res => {
-          const activeId = res[GG_CONSTANTS.STORAGE_KEYS.ACTIVE_PROMPT_ID];
-          let template = "";
-
-           // IDに基づいてプリセットから取得
-          if (activeId && typeof GG_PROMPTS !== "undefined" && GG_PROMPTS.PRESETS) {
-              const preset = GG_PROMPTS.PRESETS.find(p => p.id === activeId);
-              if (preset) template = preset.content;
-          }
-
-           // 見つからない場合はデフォルト
-          if (!template) {
-              template = (typeof GG_PROMPTS !== "undefined" ? GG_PROMPTS.DEFAULT : "");
-          }
-          resolve(template);
-        });
-    });
-  }
 
 })();
 }

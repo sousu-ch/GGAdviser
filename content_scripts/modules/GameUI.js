@@ -6,14 +6,25 @@
  */
 class GameUI {
   static DEBUG = false;
+
+  /**
+   * 信頼できない文字列を HTML エスケープする。
+   * Gemini 応答由来のテキストを innerHTML に流す前に使用する。
+   * @param {*} s
+   * @returns {string}
+   */
+  static _esc(s) {
+    const d = document.createElement("div");
+    d.textContent = s == null ? "" : String(s);
+    return d.innerHTML;
+  }
+
   constructor() {
 
     this.container = null;
-    this.metaTable = null;
     this.currentData = null; // 切り替え時の再描画用に保存
     this.currentTab = "chat";
     this.chatView = null;
-    this.metaView = null;
     this.messageRenderer = new MessageRenderer();
     this.geminiService = new GeminiService();
     this._isWaitingForResponse = false;
@@ -121,38 +132,6 @@ class GameUI {
   }
 
   /**
-   * グリッド座標に基づいてヒントをアンロック（表示）し、フォーカスする。
-   * @param {string} targetCoord - 対象の座標 (例: "A-2")
-   * @param {boolean} skipScroll - 真の場合、リストの先頭への自動スクロールをスキップする
-   */
-  unlockClue(targetCoord, skipScroll = false) {
-    if (!this.container) return;
-
-    // 一致する dataset.coord を持つ全てのリストアイテムを検索
-    const items = this.container.querySelectorAll(
-      `.gg-clue-li[data-coord="${targetCoord}"]`,
-    );
-    if (items.length === 0) return;
-
-    // 混乱を避けるため、まず全ての選択ハイライトをクリア
-    document
-      .querySelectorAll(".gg-clue-li")
-      .forEach((el) => el.classList.remove("selected"));
-
-    items.forEach((item) => {
-      const body = item.querySelector(".gg-clue-body");
-      if (body) {
-        body.classList.remove("masked");
-        body.classList.add("revealed");
-      }
-      // 一致する全てのアイテムをハイライト
-      item.classList.add("selected");
-    });
-
-    // フィードバック: 以前はここに scrollIntoView がありましたが、ユーザー体験向上のため削除しました。
-  }
-
-  /**
    * サイドバーに必要な骨組みレイアウトが存在することを保証する。
    * これにより、最初のデータ到着前でも「停止」ボタンなどを表示可能にする。
    */
@@ -222,10 +201,6 @@ class GameUI {
     if (this.metaContainer) {
       this.metaContainer.innerHTML = "";
     }
-    // metaContainer を常にクリアして再構築（現在のヒント）
-    if (this.metaContainer) {
-      this.metaContainer.innerHTML = "";
-    }
 
     // 初期のAIメッセージ
     if (data.explanationText) {
@@ -239,7 +214,6 @@ class GameUI {
     // メインリストコンテナを作成
     const listContainer = document.createElement("div");
     listContainer.className = "gg-meta-list";
-    this.metaView = listContainer;
 
     // ... existing code ...
 
@@ -308,7 +282,7 @@ class GameUI {
           chip.className = "gg-info-chip";
           chip.innerHTML = `
                         <span class="gg-icon">${icon}</span>
-                        <span class="gg-text">${value}</span>
+                        <span class="gg-text">${GameUI._esc(value)}</span>
                     `;
           globalSection.appendChild(chip);
         }
@@ -395,12 +369,12 @@ class GameUI {
 
         li.innerHTML = `
                     <div class="gg-clue-header-row">
-                        <span class="gg-clue-title">${clue.title || "Unknown Clue"}</span>
-                        ${coord ? `<span class="gg-clue-tag">${this._getDirLabel(clue.image_index)} ${coord}</span>` : ""}
+                        <span class="gg-clue-title">${GameUI._esc(clue.title || "Unknown Clue")}</span>
+                        ${coord ? `<span class="gg-clue-tag">${this._getDirLabel(clue.image_index)} ${GameUI._esc(coord)}</span>` : ""}
                     </div>
                     ${clue.description ? `
                     <div class="gg-clue-body">
-                        ${clue.description}
+                        ${GameUI._esc(clue.description)}
                     </div>` : ""}
                 `;
         ul.appendChild(li);
@@ -649,9 +623,7 @@ class GameUI {
     textarea.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault(); // 改行を阻止
-        this._handleInputSend(textarea.value);
-        textarea.value = ""; // クリア
-        textarea.style.height = "auto"; // 高さをリセット
+        this._handleInputSend(textarea.value); // 入力クリアは _handleInputSend が担当
       }
     });
 
@@ -664,9 +636,7 @@ class GameUI {
         this.geminiService.sendStopCommand();
         return;
       }
-      this._handleInputSend(textarea.value);
-      textarea.value = "";
-      textarea.style.height = "auto";
+      this._handleInputSend(textarea.value); // 入力クリアは _handleInputSend が担当
     });
   }
 
@@ -693,20 +663,6 @@ class GameUI {
       textarea.value = "";
       textarea.style.height = "auto";
     }
-  }
-
-  /**
-   * ユーザーメッセージの吹き出しを追加（委譲）
-   */
-  appendUserMessage(text) {
-    this.messageRenderer.appendUserMessage(text);
-  }
-
-  /**
-   * AIメッセージの吹き出しを追加（委譲）
-   */
-  appendAiMessage(text) {
-    return this.messageRenderer.appendAiMessage(text);
   }
 
   /**

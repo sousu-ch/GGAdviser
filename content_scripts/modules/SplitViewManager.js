@@ -10,19 +10,12 @@ class SplitViewManager {
    * デバッグモード、表示設定、および各管理クラスのインスタンス化を行う。
    */
   constructor() {
-    /** @type {boolean} デバッグログの表示制御フラグ */
-    this.debugMode = false;
-
     this.resizerHorizontal = null;
     this.resizerVertical = null;
 
     // Meta Hunter モード用のマネージャーをインスタンス化
     this.gridManager = new GridOverlayManager();
     this.gameUI = new GameUI();
-
-    if (this.debugMode) {
-      this.gridManager.debugMode = true;
-    }
 
     // GameUI からのハイライト要求を監視
     window.addEventListener("GG_HIGHLIGHT_REQ", (e) => {
@@ -297,8 +290,6 @@ class SplitViewManager {
           wideEnabled: this.wideEnabled,
         },
       });
-
-      if (this.debugMode) this.headerManager.debugMode = true;
 
       this.headerManager.init();
       this.headerManager.updateState(this.uiEnabled, this.wideEnabled);

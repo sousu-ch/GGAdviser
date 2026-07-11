@@ -170,9 +170,6 @@
     if (e.detail) updatePov(e.detail);
   });
 
-  document.documentElement.dataset.ggBridgeReady = "true";
-  window.dispatchEvent(new CustomEvent("GG_BRIDGE_READY"));
-
   // [非推奨] ハッシュによる自動開始。現在は Bridge からの MANUAL_INJECT を待機する。
 
 })();

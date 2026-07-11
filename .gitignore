@@ -1,5 +1,6 @@
 DOCS/
 .agent/
+.codegraph/
 .git/
 *.log
 .DS_Store

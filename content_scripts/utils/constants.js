@@ -10,7 +10,6 @@
         ROUND_ITEM: '[class*="game-summary_playedRound"], [class*="duel-breakdown_roundCard"]',
         ANALYZE_BTN_ID: 'gg-analyze-btn',
         NEXT_DATA_ID: '__NEXT_DATA__',
-        GAME_SUMMARY_CONTAINER: 'div[class*="buttons_buttons"]',
         SELECTED_ROUND: '[class*="game-summary_selectedRound"], [class*="duel-breakdown_selectedRound"]',
         ROUND_NUMBER: '[data-qa="round-number"], [class*="styles_round"], [class*="round-number_indicator"]',
         
@@ -49,9 +48,7 @@
     },
     EVENTS: {
         FETCH_REQUEST: "GG_FETCH_REQUEST",
-        FETCH_RESPONSE: "GG_FETCH_RESPONSE",
         MANUAL_INJECT: "GG_MANUAL_INJECT",
-        BRIDGE_READY: "GG_BRIDGE_READY",
         PANO_READY: "GG_PANO_READY_EVENT",
         UPDATE_POV: "GG_UPDATE_POV",
         GAME_DATA_FETCH: "GG_GAME_DATA_FETCH",
@@ -82,8 +79,7 @@
         
         // Highlighting Actions
         HIGHLIGHT_HINT: "GG_HIGHLIGHT_HINT",
-        HIGHLIGHT_GRID: "GG_HIGHLIGHT_GRID",
-        
+
         // Stop Generation
         STOP_GENERATION: "GG_STOP_GENERATION",
 

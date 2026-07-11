@@ -8,7 +8,6 @@ class HeaderControlManager {
     this.onToggleUI = onToggleUI;
     this.onToggleWide = onToggleWide;
     this.onReinject = onReinject;
-    this.debugMode = true;
     this.observer = null;
     this.state = initialState || { uiEnabled: true, wideEnabled: false };
 

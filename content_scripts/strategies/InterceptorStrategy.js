@@ -69,6 +69,7 @@ class InterceptorStrategy extends DataExtractionStrategy {
 
     return new Promise((resolve) => {
       const handler = (e) => {
+        if (e.origin !== "https://www.geoguessr.com") return;
         if (e.data && e.data.type === GG_CONSTANTS.EVENTS.GAME_DATA_FETCH) {
           const payload = e.data.data;
           if (payload && (payload.id === gameId || payload.gameId === gameId)) {

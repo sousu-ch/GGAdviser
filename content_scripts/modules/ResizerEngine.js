@@ -114,11 +114,4 @@ class ResizerEngine {
       if (el) el.style.pointerEvents = value;
     });
   }
-
-  /**
-   * リスナーのクリーンアップ
-   */
-  destroy() {
-    // 動的な削除が必要な場合の実装
-  }
 }

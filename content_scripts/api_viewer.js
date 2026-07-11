@@ -114,9 +114,7 @@ ui.init(async () => {
     // キャプチャのためにバックグラウンドへ送信 (インプレースモード)
     chrome.runtime.sendMessage(
       {
-        type:
-          GG_CONSTANTS.ACTIONS.START_CAPTURE_INPLACE ||
-          GG_CONSTANTS.ACTIONS.START_CAPTURE_INPLACE,
+        type: GG_CONSTANTS.ACTIONS.START_CAPTURE_INPLACE,
         data: {
           ...data,
           guessLocation: data.guessLocation,
