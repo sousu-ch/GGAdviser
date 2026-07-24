@@ -91,19 +91,23 @@ if (!window.location.hostname.includes("geoguessr.com")) {
         if (foundIdx !== -1) return foundIdx;
       }
 
-      // 3. Result Page Logic
+      // 3. Result Page Logic (言語非依存: 選択列の位置でラウンドを判定)
+      // 列は [ラウンド1..N, トータル] の順に並び、末尾がトータル列。
+      // selectedColumn の clickable 列内での位置が、そのまま0始まりのラウンドインデックス。
+      // 旧実装は英語 "Round N" テキストに依存していたため、日本語等で判定に失敗していた。
       const resultItems = Array.from(document.querySelectorAll('[class*="coordinate-results_clickableColumn"]'));
       const resultSelected = document.querySelector('[class*="coordinate-results_selectedColumn"]');
 
       if (resultItems.length > 0 && resultSelected) {
-          const validResultItems = resultItems.filter(el => el.innerText.match(/Round\s+\d+/i) || el.innerText.includes("Round"));
-          const foundIdx = validResultItems.indexOf(resultSelected);
-          if (foundIdx !== -1) return foundIdx;
-          
-          // Fallback: parse text from selected
-          const match = resultSelected.innerText.match(/Round\s+(\d+)/i);
+          const roundColCount = resultItems.length - 1; // 末尾はトータル列
+          const posIdx = resultItems.indexOf(resultSelected);
+          if (posIdx >= 0 && posIdx < roundColCount) return posIdx;
+
+          // フォールバック: 選択列テキストの数字を抽出 (ラウンド1 / Round 1 / 第1ラウンド 等)
+          const match = resultSelected.innerText.match(/(\d+)/);
           if (match) {
-              return parseInt(match[1], 10) - 1;
+              const r = parseInt(match[1], 10);
+              if (r > 0 && r <= resultItems.length) return r - 1;
           }
       }
 
@@ -383,12 +387,22 @@ if (!window.location.hostname.includes("geoguessr.com")) {
    * Game画面（途中経過）の NEXT ボタン横に ANALYZE ボタンを挿入する。
    */
   function injectGameButton() {
-    const anchor = Array.from(document.querySelectorAll('button, a, [role="button"], div[class*="button_button"]')).find(el => {
-      const txt = (el.innerText || "").toUpperCase();
-      if (txt.includes('GUESS') || el.offsetWidth === 0) return false;
-      return txt.includes('VIEW RESULTS') || txt.includes('NEXT ROUND') || txt.includes('VIEW SUMMARY') || txt === 'NEXT';
-    });
-    
+    // 言語非依存: ラウンド結果の続行ボタン(次へ/結果を見る/NEXT/VIEW RESULTS 等)は
+    // 全言語で data-qa="close-round-result" を持つ。まずこれで特定する。
+    let anchor = document.querySelector('[data-qa="close-round-result"]');
+
+    // フォールバック: 将来 data-qa が変わった場合に備えたテキスト照合(英語+日本語)
+    if (!anchor) {
+      anchor = Array.from(document.querySelectorAll('button, a, [role="button"], div[class*="button_button"]')).find(el => {
+        if (el.offsetWidth === 0) return false;
+        const txt = (el.innerText || "").trim();
+        const up = txt.toUpperCase();
+        if (up.includes('GUESS') || txt.includes('推測')) return false;
+        return up.includes('VIEW RESULTS') || up.includes('NEXT ROUND') || up.includes('VIEW SUMMARY') || up === 'NEXT'
+            || txt.includes('結果を見る') || txt.includes('次へ') || txt.includes('サマリー');
+      });
+    }
+
     if (!anchor) return;
     
     const btnId = GG_CONSTANTS.SELECTORS.ANALYZE_BTN_ID + "-game";
