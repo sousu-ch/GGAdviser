@@ -31,18 +31,11 @@ class PanoBridge {
       if (request.action === "INIT_PANO" && request.data) {
 
         this.injectPanoScript(request.data);
-      } else if (request.action === "UPDATE_POV" && request.data) {
-
-        window.dispatchEvent(
-          new CustomEvent(GG_CONSTANTS.EVENTS.UPDATE_POV, { detail: request.data }),
-        );
       } else if (request.action === "UPDATE_POV_FAST" && request.data) {
 
         window.dispatchEvent(
           new CustomEvent(GG_CONSTANTS.EVENTS.SET_POV_FAST, { detail: request.data }),
         );
-      } else if (request.action === GG_CONSTANTS.ACTIONS.GG_LOG) {
-
       }
     });
   }

@@ -2,36 +2,6 @@ import { sendToast, blobToDataUrl, DEBUG } from "./bg_utils.js";
 import { getActiveMapUrl } from "./bg_storage.js";
 import { ImageMergeService } from "../services/ImageMergeService.js";
 
-// ちらつきを防ぐために注入されたタブを追跡
-export const injectedTabs = new Set();
-
-/**
- * 地図編集画面（Map-making.app）のクリーン表示フェーズ初期化。
- * CSS 注入を行い、不要な UI 要素を非表示にした状態でキャプチャ準備を整える。
- * @param {number} tabId 対象のタブ ID。
- * @param {Object} data 座標等のメタデータ。
- * @returns {Promise<void>}
- */
-export async function onMapReadyForClean(tabId, data) {
-  const res = await chrome.storage.local.get("captureState");
-  const state = res.captureState;
-  const isInPlace = state && state.isInPlace && state.tabId === tabId;
-
-  if (!isInPlace && !injectedTabs.has(tabId)) {
-    try {
-      await chrome.scripting.insertCSS({
-        target: { tabId: tabId },
-        files: ["css/clean_view.css"],
-      });
-
-      injectedTabs.add(tabId);
-    } catch (e) {
-      if (DEBUG) console.error("CSS Inject failed", e);
-    }
-  }
-  handleMapReady(tabId, data);
-}
-
 /**
  * キャプチャ用タブのロード完了時（ハンドシェイク）の初期メッセージ送信。
  * パノラマビューの初期位置（第1方位）を設定する。
@@ -232,14 +202,8 @@ export async function startSequentialCapture(
     return;
   }
 
-  const cleanCaptureUrl = viewerUrlBase.split("#")[0];
-  let tab;
-  if (!isInPlace) {
-    tab = await chrome.tabs.create({ url: cleanCaptureUrl, active: true });
-  }
-
   const captureState = {
-    tabId: isInPlace ? reuseTabId : tab.id,
+    tabId: reuseTabId,
     isInPlace: isInPlace,
     originalTabId: reuseTabId || payload.originalTabId,
     lat,
@@ -367,7 +331,7 @@ export async function handleMapReady(tabId, metaData) {
 
       chrome.tabs
         .sendMessage(tabId, {
-          action: state.isInPlace ? "UPDATE_POV_FAST" : "UPDATE_POV",
+          action: "UPDATE_POV_FAST",
           data: {
             heading: nextHeading,
             pitch: 0,
@@ -404,7 +368,7 @@ export async function handleMapReady(tabId, metaData) {
 
 /**
  * すべての方位のキャプチャ完了後の最終処理。
- * 画像の結合（Phase 3）、高解像度画像の保存、および結果表示画面（viewer.html または GeoGuessr内UI）への遷移を行う。
+ * 画像の結合（Phase 3）、高解像度画像の保存、および結果表示画面（map-making.app 上の UI）への遷移を行う。
  * @param {Object} state 完了したキャプチャセッションの状態オブジェクト。
  * @returns {Promise<void>}
  */
@@ -423,6 +387,7 @@ export async function finalizeCapture(state) {
     guessLocation: state.guessLocation, // [NEW]
     actualLocationFromHistory: state.actualLocationFromHistory, // [NEW]
     promptTemplate: state.promptTemplate || "",
+    savedAt: Date.now(), // Gemini 側で古い finalData を捨てる判定に使う
   };
 
   // [修正] 分割ストレージ戦略 (サイズ制限と永続性の回避)
@@ -433,28 +398,19 @@ export async function finalizeCapture(state) {
   const displayImages = payload.mapData.displayImages;
   delete payload.mapData.displayImages;
 
-  // タブに通知する前にストレージの書き込みを厳密に待機
-  const res = await chrome.storage.local.get("captureLogs");
-  let logs = res.captureLogs || [];
-  
   // --- [Phase 3] 画像結合処理の実行 ---
   let combinedDataUrl = null;
   try {
     const merger = new ImageMergeService();
     combinedDataUrl = await merger.createCombinedPanorama(state.images);
-    logs.push("[PHASE 3] Image Merging Complete.");
-    
   } catch (e) {
     if (DEBUG) console.error("Image Merge Failed, falling back to original logic", e);
-    logs.push("[PHASE 3] Image Merging Failed: " + e.message);
   }
 
   // Gemini送信用にペイロードを上書き (結合に成功した場合)
   if (combinedDataUrl) {
     payload.mapData.images = [combinedDataUrl]; // 4枚から1枚へ
   }
-
-  logs.push("[FINALIZE] Sequential Capture Complete (Split Mode).");
 
   // 同期オリエンテーションのためのメタデータ
   // 同期ビュー回転のために方位をメタデータオブジェクトにマッピング
@@ -466,7 +422,6 @@ export async function finalizeCapture(state) {
       highResImages: displayImages, // 個別のキー
       highResMetadata: highResMetadata, // 同期のために方位を保存
       captureState: null,
-      // captureLogs: logs,
     });
 
     // [検証] 一貫性を確保するために読み戻す
@@ -479,8 +434,6 @@ export async function finalizeCapture(state) {
       chrome.tabs
         .sendMessage(state.tabId, { action: GG_CONSTANTS.ACTIONS.SHOW_RESULT, data: payload })
         .catch(() => {});
-    } else {
-      chrome.tabs.create({ url: chrome.runtime.getURL("viewer.html") });
     }
   } catch (e) {
     if (DEBUG) console.error("Storage Write Failed", e);

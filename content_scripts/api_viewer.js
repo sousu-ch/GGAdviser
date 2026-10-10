@@ -147,9 +147,7 @@ ui.init(async () => {
  * キャプチャ結果の表示、エラー回復、リモートコマンドの処理を担当する。
  */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === GG_CONSTANTS.ACTIONS.GG_LOG) {
-
-  } else if (request.action === GG_CONSTANTS.ACTIONS.SHOW_RESULT) {
+  if (request.action === GG_CONSTANTS.ACTIONS.SHOW_RESULT) {
 
     ui.showResult(request.data);
     // キャプチャしたデータがストレージに準備できている状態で Gemini タブを開く
@@ -187,15 +185,6 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       request.message,
       request.type || "info",
     );
-  } else if (request.action === "SHOW_IMAGE_OVERLAY") {
-
-    ui.showImageOverlay(
-      request.data,
-      request.coord,
-      request.title,
-      request.imgIndex,
-      request.linkId,
-    );
   } else if (request.action === "GG_GAME_DATA_FETCH") {
 
 
@@ -212,52 +201,5 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       }),
     );
   }
-
-  // 双方向メッセージングリレー
-  // 1. Iframe -> Main Page
-  if (
-    request.action === GG_CONSTANTS.EVENTS.HINT_HOVER ||
-    request.action === GG_CONSTANTS.EVENTS.HINT_CLICK
-  ) {
-
-    window.dispatchEvent(
-      new CustomEvent(request.action, {
-        detail: {
-          coord: request.coord,
-          imgIndex: request.imgIndex,
-          linkId: request.linkId,
-        },
-      }),
-    );
-  }
-  // 2. Main Page -> Iframe
-  // メモ: これはハイライト用の GridOverlayManager のパターンと一致する
-  if (request.action === GG_CONSTANTS.ACTIONS.HIGHLIGHT_HINT) {
-
-    // iframe に転送するためには、通常 gemini.js がリッスンしていることを確認する必要がある。
-    // 今のところ、gemini.js がリッスンしている chrome.runtime.sendMessage を介してリレーする。
-    // 実際、gemini.js はすでに chrome.runtime.onMessage をリッスンしている。
-  }
 });
 
-/**
- * グリッドオーバーレイ上でのユーザーインタラクション（ホバー/クリック）を検知し、
- * 他のコンポーネント（Gemini 等）へ同期させるためにバックグラウンドへ転送する。
- */
-window.addEventListener(GG_CONSTANTS.EVENTS.GRID_HOVER, (e) => {
-  chrome.runtime.sendMessage({
-    action: GG_CONSTANTS.EVENTS.GRID_HOVER,
-    coord: e.detail.coord,
-    imgIndex: e.detail.imgIndex,
-    linkId: e.detail.linkId,
-    isWholeImage: e.detail.isWholeImage,
-  });
-});
-window.addEventListener(GG_CONSTANTS.EVENTS.GRID_CLICK, (e) => {
-  chrome.runtime.sendMessage({
-    action: GG_CONSTANTS.EVENTS.GRID_CLICK,
-    coord: e.detail.coord,
-    imgIndex: e.detail.imgIndex,
-    linkId: e.detail.linkId,
-  });
-});

@@ -11,7 +11,6 @@
         ANALYZE_BTN_ID: 'gg-analyze-btn',
         NEXT_DATA_ID: '__NEXT_DATA__',
         SELECTED_ROUND: '[class*="game-summary_selectedRound"], [class*="duel-breakdown_selectedRound"]',
-        ROUND_NUMBER: '[data-qa="round-number"], [class*="styles_round"], [class*="round-number_indicator"]',
         
         // Map-making.app UI
         MAP_APP_WRAPPER: '.page-map-editor',
@@ -36,21 +35,18 @@
         DISABLED: 'gg-disabled',
         ANALYZE_BUTTON: 'gg-analyze-button',
         CONTROL_HEADER: 'gg-control-header',
-        CONTROL_TITLE: 'gg-control-title',
         // Map Extractor
         PANO_TARGET: 'gg-pano-target',
         PANO_ANCESTOR: 'gg-pano-ancestor',
     },
     URLS: {
         GEMINI: "https://gemini.google.com/app",
-        MAP_MAKING_BASE: "https://map-making.app",
         GOOGLE_MAPS_PANO_BASE: "https://www.google.com/maps/@?api=1&map_action=pano"
     },
     EVENTS: {
         FETCH_REQUEST: "GG_FETCH_REQUEST",
         MANUAL_INJECT: "GG_MANUAL_INJECT",
         PANO_READY: "GG_PANO_READY_EVENT",
-        UPDATE_POV: "GG_UPDATE_POV",
         GAME_DATA_FETCH: "GG_GAME_DATA_FETCH",
         // Map Extractor
         REQUEST_MAP_DATA: "GG_REQUEST_MAP_DATA",
@@ -73,12 +69,7 @@
         RESTORE_UI_ERROR: "RESTORE_UI_ERROR",
         REMOTE_ANALYZE: "REMOTE_ANALYZE",
         SHOW_TOAST: "SHOW_TOAST",
-        GG_LOG: "GG_LOG",
-        INJECT_GRID_LINK: "INJECT_GRID_LINK",
         CTX_INJECT_QUERY: "CTX_INJECT_QUERY",
-        
-        // Highlighting Actions
-        HIGHLIGHT_HINT: "GG_HIGHLIGHT_HINT",
 
         // Stop Generation
         STOP_GENERATION: "GG_STOP_GENERATION",
@@ -96,7 +87,6 @@
         ACTIVE_PROMPT_ID: 'gg_active_prompt_id',
         UI_ENABLED: 'gg_ui_enabled',
         WIDE_ENABLED: 'gg_wide_enabled',
-        QUIZ_MODE: 'gg_quiz_mode',
         LAST_GUESS_DATA: 'ggadviser_last_guess_data'
     },
 

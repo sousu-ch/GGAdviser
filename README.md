@@ -1,4 +1,4 @@
-# GGAdviser (v1.1.11)
+# GGAdviser (v1.1.12)
 
 Geoguessrのプレイ結果を `map-making.app` と `Gemini` を使って効率的に振り返るためのChrome拡張機能です。
 ![GGAdviser Overview](assets/images/1_hero.jpg)

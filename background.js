@@ -11,8 +11,8 @@ import {
   handleObtainMapTitle 
 } from "./background/modules/bg_api.js";
 import { 
-  onMapReadyForClean, 
-  onMapTabReady, 
+  handleMapReady,
+  onMapTabReady,
   handleGeoGuessrAnalyze, 
   startSequentialCapture 
 } from "./background/modules/bg_capture.js";
@@ -21,30 +21,7 @@ chrome.runtime.onInstalled.addListener(() => {
   initStorageOnInstalled();
 });
 
-chrome.runtime.onMessageExternal.addListener(handleExternalMessage);
 chrome.runtime.onMessage.addListener(handleMessage);
-
-// 外部Webページ（GeoGuessr）からのメッセージハンドラー
-function handleExternalMessage(request, sender, sendResponse) {
-  // セキュリティ対策 1: 送信元オリジンの厳格な検証
-  const allowedOrigin = "https://www.geoguessr.com";
-  if (!sender.origin || sender.origin !== allowedOrigin) {
-    sendResponse({ error: "Unauthorized origin" });
-    return;
-  }
-
-  const action = request.action || request.type;
-  
-  // セキュリティ対策 2: 外部から実行可能なアクションを最小限に制限 (PING, DATA_COLLECTED のみ)
-  const allowedExternalActions = ["PING", "DATA_COLLECTED"];
-  if (!allowedExternalActions.includes(action)) {
-    sendResponse({ error: "Action not allowed from external context" });
-    return;
-  }
-
-  // 許可された安全なメッセージのみを通常のハンドラーに中継する
-  return handleMessage(request, sender, sendResponse);
-}
 
 // 統合メッセージハンドラールーター
 function handleMessage(request, sender, sendResponse) {
@@ -54,10 +31,6 @@ function handleMessage(request, sender, sendResponse) {
 
   (async () => {
     switch (action) {
-      case "PING":
-        sendResponse({ status: "ok" });
-        break;
-
       case "DATA_COLLECTED":
         handleGeoGuessrAnalyze(data);
         sendResponse({ status: "redirected_to_map" });
@@ -69,38 +42,13 @@ function handleMessage(request, sender, sendResponse) {
         break;
 
       case "MAP_READY_FOR_Clean":
-        if (tabId) await onMapReadyForClean(tabId, data);
+        if (tabId) handleMapReady(tabId, data);
         sendResponse({ status: "received" });
         break;
 
       case "MAP_TAB_READY":
         if (tabId) await onMapTabReady(tabId);
         sendResponse({ status: "received" });
-        break;
-
-      case "API_VIEWER_LOADED":
-        sendResponse({ status: "ack" });
-        break;
-
-      case "LOG":
-        sendResponse({ status: "ok" });
-        break;
-
-      case "SHOW_IMAGE_OVERLAY":
-        // 画像オーバーレイ要求をリレー (Iframe -> Main)
-        if (tabId) {
-          chrome.tabs
-            .sendMessage(tabId, {
-              action: "SHOW_IMAGE_OVERLAY",
-              data: data,
-              coord: request.coord,
-              title: request.title,
-              imgIndex: request.imgIndex,
-              linkId: request.linkId,
-            })
-            .catch(() => {});
-        }
-        sendResponse({ status: "relayed" });
         break;
 
       case "CTX_INJECT_QUERY":
@@ -182,16 +130,6 @@ function handleMessage(request, sender, sendResponse) {
         sendResponse({ status: "forwarded" });
         break;
 
-      case "GG_HINT_HOVER":
-      case "GG_HINT_CLICK":
-      case "GG_GRID_CLICK":
-        // 同一タブ内のコンテキスト間で同期イベントをリレー
-        if (tabId) {
-          chrome.tabs.sendMessage(tabId, request).catch(() => {});
-        }
-        sendResponse({ status: "relayed" });
-        break;
-
       case GG_CONSTANTS.ACTIONS.STOP_GENERATION:
         // 停止コマンドを Gemini タブにリレー
         // 最適化: 可能であれば追跡 ID を使用
@@ -226,7 +164,7 @@ function handleMessage(request, sender, sendResponse) {
           // 自動復帰のためにマップタブ ID をオリジンとして保存
           await chrome.storage.local.set({ gg_origin_tab_id: tabId });
         }
-        await _openOrActivateGemini(data);
+        await _openOrActivateGemini();
         sendResponse({ status: "opening" });
         break;
 

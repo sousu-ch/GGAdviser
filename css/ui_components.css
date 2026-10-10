@@ -74,12 +74,6 @@
   box-sizing: border-box;
 }
 
-.gg-control-title {
-  color: #e8eaed;
-  font-weight: bold;
-  font-size: 14px;
-}
-
 /* Gemini パネル内の分析ボタン */
 .gg-analyze-button {
   background: linear-gradient(135deg, #8ab4f8 0%, #4285f4 100%);

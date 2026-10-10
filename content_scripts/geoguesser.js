@@ -35,8 +35,12 @@ if (!window.location.hostname.includes("geoguessr.com")) {
 
   /**
    * Geoguessr UI から現在選択されているラウンドインデックスを決定する。
+   * 別のラウンドで代用はしない。特定できない場合は null を返す。
+   * - /game/ はラウンド選択UIを持たないため null (API の直近プレイ済みラウンドを使う)
+   * - /results/ で TOTAL 列が選択されている場合も null
+   * @returns {number|null} 0始まりのラウンドインデックス。特定できなければ null。
    */
-  function getSelectedRoundIndex(totalRounds) {
+  function getSelectedRoundIndex() {
     try {
       // 0. URL Query Parameter Logic (Most reliable for summary pages)
       const urlParams = new URLSearchParams(window.location.search);
@@ -48,32 +52,10 @@ if (!window.location.hostname.includes("geoguessr.com")) {
         }
       }
 
-      // 1. Game Page Logic (High Priority)
+      // 1. Game Page Logic: /game/ はラウンド選択UIを持たないため null を返す。
+      // ラウンド決定は extractBreakdownData で API の guesses.length に基づいて行う。
       if (location.pathname.includes("/game/")) {
-        // 1. 複数のセレクタを順に試して、現在のラウンド数インジケーターを取得
-        // data-qa="round-number" や ハッシュ付きクラス名の両方に対応
-        const selectors = GG_CONSTANTS.SELECTORS.ROUND_NUMBER.split(',').map(s => s.trim());
-        let roundNumEl = null;
-        for (const s of selectors) {
-          roundNumEl = document.querySelector(s);
-          if (roundNumEl) break;
-        }
-
-        if (roundNumEl) {
-          const text = roundNumEl.innerText;
-          // "ROUND 1 / 5" または "Round 1" 形式から数値を抽出
-          const match = text.match(/(\d+)\s*\//) || text.match(/Round\s*(\d+)/i);
-          if (match) {
-            const currentRound = parseInt(match[1], 10);
-            if (!isNaN(currentRound) && currentRound > 0) {
-              // 調査の結果、GeoGuessrの結果画面（中間・最終とも）の表示は
-              // すでに「完了したラウンド」を正確に指していることが判明したため、
-              // 単純に -1 してインデックス化するだけで全てのケースで正しく動作する。
-              const finalIdx = currentRound - 1;
-              return finalIdx;
-            }
-          }
-        }
+        return null;
       }
 
       // 2. Duel/Game Summary Logic
@@ -102,6 +84,7 @@ if (!window.location.hostname.includes("geoguessr.com")) {
           const roundColCount = resultItems.length - 1; // 末尾はトータル列
           const posIdx = resultItems.indexOf(resultSelected);
           if (posIdx >= 0 && posIdx < roundColCount) return posIdx;
+          if (posIdx === roundColCount) return null; // TOTAL 列はラウンドを特定できない
 
           // フォールバック: 選択列テキストの数字を抽出 (ラウンド1 / Round 1 / 第1ラウンド 等)
           const match = resultSelected.innerText.match(/(\d+)/);
@@ -114,13 +97,17 @@ if (!window.location.hostname.includes("geoguessr.com")) {
     } catch (e) {
       if (DEBUG) console.warn("Error determining selected round:", e);
     }
-    return totalRounds - 1;
+    return null;
   }
 
   /**
-   * 利用可能な戦略を反復処理してデータ抽出プロセスを調整する。
+   * 画面に応じた戦略でデータを抽出する。
+   * - /game/, /results/ (通常ゲーム): ApiV3 のみ。失敗しても他の戦略には落とさない。
+   * - /duels/: Interceptor -> NextData の順に試す。
+   * ラウンドを特定できない場合は、別ラウンドで代用せず { error } を返す。
    * @param {string} [overrideGameId] - 抽出するゲームID（指定時優先）
-   * @param {number} [overrideRoundIndex] - 抽出するラウンドインデックス（指定時優先）
+   * @param {number|null} [overrideRoundIndex] - 抽出するラウンドインデックス（指定時優先）
+   * @returns {Promise<Object>} 抽出データ、または { error: string }。
    */
   async function extractBreakdownData(overrideGameId = null, overrideRoundIndex = null) {
     let currentGameId = overrideGameId;
@@ -133,20 +120,22 @@ if (!window.location.hostname.includes("geoguessr.com")) {
 
     let targetRoundIndex = overrideRoundIndex;
     if (targetRoundIndex === null) {
-      targetRoundIndex = getSelectedRoundIndex(5);
-    }
-    
-
-    let currentStrategies = [...strategies];
-    if (location.pathname.startsWith("/game/") || location.pathname.includes("/results/")) {
-      currentStrategies = [
-        ...strategies.filter(s => s instanceof ApiV3Strategy),
-        ...strategies.filter(s => !(s instanceof ApiV3Strategy))
-      ];
+      targetRoundIndex = getSelectedRoundIndex();
     }
 
-    let errors = [];
+    // /game/ はラウンド選択UIを持たない。null は「API 上の直近プレイ済みラウンド」を意味する。
+    // それ以外でラウンドを特定できない場合は、別ラウンドで代用せずエラーにする。
+    // URL には言語プレフィックスが付く(/ja/game/...)ので、先頭一致ではなく部分一致で判定する。
+    const isGamePage = location.pathname.includes("/game/");
+    if (targetRoundIndex === null && !isGamePage) {
+      return { error: "ラウンドを特定できませんでした。ラウンドを選択してから実行してください。" };
+    }
 
+    // 通常ゲームは ApiV3 のみ(失敗時に別経路へ落とさない)。デュエルは Interceptor -> NextData。
+    const isClassic = isGamePage || location.pathname.includes("/results/");
+    const currentStrategies = strategies.filter((s) => isClassic === (s instanceof ApiV3Strategy));
+
+    let unexpected = null;
     for (const strategy of currentStrategies) {
       try {
         const data = await strategy.extract(
@@ -158,17 +147,26 @@ if (!window.location.hostname.includes("geoguessr.com")) {
           return data;
         }
       } catch (e) {
+        // 確定した失敗は、理由を表示してそこで止める(他の戦略に落とさない)
+        if (e instanceof ExtractionError) {
+          return { error: e.message };
+        }
         if (DEBUG) {
           console.warn(
             `GGAdviser: Strategy ${strategy.constructor.name} failed:`,
             e,
           );
         }
-        errors.push(e.message);
+        unexpected = e;
       }
     }
 
-    return { error: "位置データの抽出に失敗しました。リロードしてください。" };
+    if (unexpected) {
+      return {
+        error: `予期しないエラーが発生しました: ${unexpected.message} ページをリロードして再試行してください。`,
+      };
+    }
+    return { error: "ゲームデータを取得できませんでした。" };
   }
 
   /**
@@ -367,8 +365,6 @@ if (!window.location.hostname.includes("geoguessr.com")) {
     const container = card.parentElement;
     if (!container) return;
 
-    container.style.position = "relative";
-
     const analyzeBtn = document.createElement("a");
     analyzeBtn.id = btnId;
     analyzeBtn.href = "#";
@@ -406,7 +402,19 @@ if (!window.location.hostname.includes("geoguessr.com")) {
     if (!anchor) return;
     
     const btnId = GG_CONSTANTS.SELECTORS.ANALYZE_BTN_ID + "-game";
-    if (document.getElementById(btnId)) return;
+
+    // 本家ボタンの実寸に追従させる(画面幅やメディアクエリで寸法が変わるため)
+    const syncSize = (btn) => {
+      const cs = getComputedStyle(anchor);
+      btn.style.setProperty("--gg-next-h", cs.height);
+      btn.style.setProperty("--gg-next-fs", cs.fontSize);
+    };
+
+    const existing = document.getElementById(btnId);
+    if (existing) {
+      syncSize(existing);
+      return;
+    }
 
     const container = anchor.parentElement?.parentElement;
     if (!container) return;
@@ -415,6 +423,7 @@ if (!window.location.hostname.includes("geoguessr.com")) {
     analyzeBtn.id = btnId;
     analyzeBtn.href = "#";
     analyzeBtn.className = "gg-map-making-btn gg-btn-game";
+    syncSize(analyzeBtn);
 
     const label = document.createElement("span");
     label.innerText = "Map Making App";

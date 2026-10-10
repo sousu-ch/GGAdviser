@@ -1,11 +1,8 @@
 {
   "manifest_version": 3,
   "name": "GGAdviser",
-  "version": "1.1.11",
+  "version": "1.1.12",
   "description": "Geoguessr プレイ向けの AI コーチングアシスタント。プレイ結果を分析し、Gemini と連携して場所特定のアドバイスを提供します。",
-  "externally_connectable": {
-    "matches": ["https://www.geoguessr.com/*"]
-  },
   "host_permissions": [
     "https://gemini.google.com/*",
     "https://map-making.app/*",
@@ -53,6 +50,7 @@
           "content_scripts/utils/constants.js",
           "content_scripts/utils/prompts.js",
           "content_scripts/utils/StateManager.js",
+          "content_scripts/utils/ToastManager.js",
           "content_scripts/utils/PromptBuilder.js",
           "content_scripts/modules/ResponseParser.js",
           "content_scripts/gemini.js"
@@ -77,7 +75,6 @@
       "resources": [
         "content_scripts/inject_main.js",
         "content_scripts/gg_interceptor.js",
-        "css/clean_view.css",
         "css/split_view.css",
         "css/layout_fixer.css",
         "css/ui_components.css",

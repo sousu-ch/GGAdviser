@@ -8,7 +8,8 @@ class InterceptorStrategy extends DataExtractionStrategy {
    * データがまだキャッシュされていない場合は、アクティブなフェッチをトリガーする。
    * @param {string} gameId - 現在のゲームID。
    * @param {number} roundIndex - ターゲットラウンドインデックス。
-   * @returns {Promise<Object|null>} フォーマットされたラウンドデータまたは null。
+   * @returns {Promise<Object|null>} フォーマットされたラウンドデータ。取得できなければ null。
+   * @throws {ExtractionError} 同じゲームのデータに対して、ラウンドが範囲外のとき。
    */
   async extract(gameId, roundIndex) {
     // アクティブなフェッチは ensureGameData を介してトリガーされる
@@ -25,10 +26,10 @@ class InterceptorStrategy extends DataExtractionStrategy {
 
       if (data.rounds && data.rounds.length > 0) {
         // 境界チェック
-        const targetIdx =
-          roundIndex >= 0 && roundIndex < data.rounds.length
-            ? roundIndex
-            : data.rounds.length - 1;
+        const targetIdx = roundIndex;
+        if (!Number.isInteger(targetIdx) || targetIdx < 0 || targetIdx >= data.rounds.length) {
+          throw new ExtractionError("指定のラウンドは存在しません。");
+        }
 
         const targetRound = data.rounds[targetIdx];
         if (targetRound && targetRound.panorama) {

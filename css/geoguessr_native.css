@@ -45,29 +45,23 @@ a.gg-map-making-btn {
 }
 
 /* ページ別サイズ補正 */
-.gg-btn-summary {
-  font-size: 0.875rem !important; /* 14px */
-  height: 2.25rem !important;    /* 36px */
-  padding: 0 1.25rem !important;
-}
-
 .gg-btn-result {
   font-size: 0.875rem !important;
   height: 3rem !important; /* 48px */
   padding: 0 1.25rem !important;
-  position: absolute !important;
-  right: -240px !important;
-  top: 0 !important;
   width: 220px !important;
+  grid-column: 1 / -1 !important;  /* 情報カードのグリッド全列をまたぐ */
+  justify-self: center !important; /* グリッドの中央に配置 */
 }
 
+/* 高さ・文字サイズは JS が本家 NEXT ボタンの実寸を --gg-next-h / --gg-next-fs に反映する */
 .gg-btn-game {
-  font-size: 1.25rem !important;  /* 20px (本家 NEXT ボタンと同等) */
-  height: 3.6875rem !important;  /* 59px (本家 NEXT ボタンと同等) */
-  padding: 0 1.5rem !important;
-  min-width: 12rem !important;
+  font-size: var(--gg-next-fs, 1.125rem) !important;
+  height: var(--gg-next-h, 3rem) !important;
+  padding: 0 1.14em !important; /* 本家 .button_root と同じ */
+  min-width: 0 !important;
   margin: 0 0 0 15px !important;
-  align-self: flex-start !important;
+  align-self: center !important;
   z-index: 999999 !important;
 }
 

@@ -8,7 +8,8 @@ class NextDataStrategy extends DataExtractionStrategy {
    * DOM 内の __NEXT_DATA__ スクリプトタグを解析してゲームデータを抽出する。
    * @param {string} gameId - 現在のゲームID (検証用)。
    * @param {number} roundIndex - ターゲットラウンドインデックス。
-   * @returns {Promise<Object|null>} フォーマットされたラウンドデータまたは null。
+   * @returns {Promise<Object|null>} フォーマットされたラウンドデータ。取得できなければ null。
+   * @throws {ExtractionError} 同じゲームのデータに対して、ラウンドが範囲外のとき。
    */
   async extract(gameId, roundIndex) {
     try {
@@ -32,10 +33,10 @@ class NextDataStrategy extends DataExtractionStrategy {
         }
 
         if (game.rounds && game.rounds.length > 0) {
-          const targetIdx =
-            roundIndex >= 0 && roundIndex < game.rounds.length
-              ? roundIndex
-              : game.rounds.length - 1;
+          const targetIdx = roundIndex;
+          if (!Number.isInteger(targetIdx) || targetIdx < 0 || targetIdx >= game.rounds.length) {
+            throw new ExtractionError("指定のラウンドは存在しません。");
+          }
 
           const targetRound = game.rounds[targetIdx];
           if (targetRound && targetRound.panorama) {
@@ -55,6 +56,7 @@ class NextDataStrategy extends DataExtractionStrategy {
         }
       }
     } catch (e) {
+      if (e instanceof ExtractionError) throw e;
       if (NextDataStrategy.DEBUG) console.error("[NextDataStrategy] Parse error:", e);
     }
     return null;

@@ -1,4 +1,15 @@
 /**
+ * 確定した抽出の失敗。message は利用者にそのまま表示できる文言にする。
+ * これを投げると、呼び出し側は他の戦略を試さずに処理を止める。
+ */
+class ExtractionError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "ExtractionError";
+  }
+}
+
+/**
  * データ抽出戦略の基本クラス。
  * インターフェースと共有ヘルパーメソッドを定義する。
  */
@@ -8,9 +19,14 @@ class DataExtractionStrategy {
 
   /**
    * 指定されたゲームIDとターゲットラウンドインデックスのゲームデータを抽出する。
+   * 結果は次の3通りで表す。
+   * - 抽出データを返す: 成功。
+   * - null を返す: この情報源では取得できない。呼び出し側は次の戦略を試してよい。
+   * - ExtractionError を投げる: 確定した失敗(範囲外・通信失敗など)。他の戦略には落とさない。
    * @param {string} gameId - 現在のゲームのID。
-   * @param {number} roundIndex - 抽出するラウンドの0ベースのインデックス。
-   * @returns {Promise<Object|null>} - 抽出されたデータオブジェクト、失敗した場合は null。
+   * @param {number|null} roundIndex - 抽出するラウンドの0ベースのインデックス。
+   * @returns {Promise<Object|null>} - 抽出されたデータオブジェクト、取得できなければ null。
+   * @throws {ExtractionError}
    */
   async extract(gameId, roundIndex) {
     throw new Error("extract() はサブクラスで実装する必要があります");

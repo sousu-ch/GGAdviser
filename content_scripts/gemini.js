@@ -16,12 +16,6 @@
     );
   }
 
-  function findSendButton() {
-    return document.querySelector(
-      'button[aria-label*="送信"], button[aria-label*="Send"], .send-button',
-    );
-  }
-
   // 診断用マーカー（即時実行）
   try {
     const manifestVer = chrome.runtime.getManifest().version;
@@ -56,9 +50,6 @@
   let isStopRequested = false; // 生成前のキャンセルキャンセル不可フラグ
   let lastSentText = ""; // Memory storage to prevent duplicate recovery
 
-  // 双方向同期フォーカス (グリッド -> チャット)の状態
-  let currentSelected = null; // { coord, imgIndex }
-
   // ガード: Geminiアプリ以外では実行しない
   if (path !== "/" && !path.startsWith("/app")) {
     return;
@@ -70,28 +61,13 @@
   }
   window.__GG_GEMINI_INITIALIZED = true;
 
-  // バックグラウンドからの明示的な注入コマンドを待機 (プッシュ型)
-  if (chrome.runtime && chrome.runtime.onMessage) {
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      if (request.action === "CMD_INJECT_DATA") {
-        // データペイロードが直接送られてくる場合と、ストレージから読む場合に対応
-        const data = request.data || null;
+  // finalData の有効期間。ANALYZE から Gemini を開くまでと、添付失敗後の開き直しを想定した長さ。
+  // これを過ぎた finalData は古い解析の残りとみなし、注入せずに捨てる。
+  const FINAL_DATA_TTL_MS = 10 * 60 * 1000;
 
-        if (data) {
-          executeInjection(data);
-          sendResponse({ status: "injeciton_started" });
-        } else {
-          // ペイロードがない場合はストレージを確認 (後方互換またはバックアップ)
-          chrome.storage.local.get(GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA, (res) => {
-            if (res && res[GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA]) {
-              executeInjection(res[GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA]);
-            }
-          });
-          sendResponse({ status: "checking_storage" });
-        }
-      }
-    });
-  }
+  // 画像の貼り付けは、添付を確認できるまで再試行する。
+  const ATTACH_MAX_TRIES = 3; // 貼り付けの試行回数の上限
+  const ATTACH_CONFIRM_MS = 4000; // 1回の貼り付け後に添付を待つ時間
 
   // 初期化時に一度だけストレージを確認 (ポーリングはしない)
   // これにより、リロード直後の新しいページが自分でデータを取りに行けるようにする
@@ -102,6 +78,12 @@
     chrome.storage.local.get(GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA, (res) => {
       if (res && res[GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA]) {
         const data = res[GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA];
+        // 保存時刻が無い(旧版のデータ)または期限切れなら、注入せずに捨てる
+        const age = Date.now() - data.savedAt;
+        if (!(age >= 0 && age <= FINAL_DATA_TTL_MS)) {
+          chrome.storage.local.remove(GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA);
+          return;
+        }
         // 入力欄が見つかるまで少し待つ必要があるかもしれないが、executeInjection内で待機ロジックがあるため直接呼ぶ
         executeInjection(data);
       }
@@ -135,7 +117,13 @@
     inputArea.focus();
 
     // 1. 画像の添付
+    // 添付を確認できない場合は、プロンプトだけが入った状態にせず、エラーにして止める。
+    // finalData は残すので、Gemini を開き直せば再試行できる。
     const images = data.mapData?.images || [];
+    if (images.length === 0) {
+      _attachFailed("送信する画像がありません。");
+      return;
+    }
     for (let i = 0; i < images.length; i++) {
       if (isStopRequested) {
 
@@ -143,17 +131,22 @@
       }
 
       const currentInput = findInputArea();
-      if (currentInput) {
-        await attachImageInternal(currentInput, images[i], i + 1);
+      const attached = currentInput
+        ? await attachImageInternal(currentInput, images[i], i + 1)
+        : false;
+      if (!attached) {
+        if (!isStopRequested) _attachFailed(`画像 ${i + 1}/${images.length} の添付を確認できませんでした。`);
+        return;
       }
       if (i < images.length - 1) {
         await new Promise((r) => setTimeout(r, 1500));
       }
     }
 
-    if (images.length > 0) {
-      await new Promise((r) => setTimeout(r, 1000));
-    }
+    // 全画像の添付を確認できたので、この finalData は使用済み。Gemini を開き直しても再注入しない。
+    chrome.storage.local.remove(GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA);
+
+    await new Promise((r) => setTimeout(r, 1000));
 
     if (isStopRequested) {
 
@@ -234,26 +227,79 @@
     }
   }
 
+  function _attachFailed(detail) {
+    _error("Image attach failed: " + detail);
+    if (window.ToastManager) {
+      window.ToastManager.show(
+        "GGAdviser: 画像を添付できませんでした",
+        detail + " プロンプトは入力していません。Gemini を開き直して再試行してください。",
+        "error",
+        10000,
+      );
+    }
+  }
+
+  // 添付の確認用スナップショット。Gemini の添付 UI は DOM が変わりやすいため、
+  // 入力エリア内の画像系要素の数と、貼り付けたファイル名の出現の両方を見る。
+  function _snapshotAttachments(fileName) {
+    const scope =
+      document.querySelector("input-area-v2, .input-area-container, div.input-area") ||
+      document.body;
+    return {
+      mediaCount: scope.querySelectorAll("img, canvas").length,
+      hasName: scope.innerHTML.includes(fileName),
+    };
+  }
+
+  function _isAttached(before, fileName) {
+    const now = _snapshotAttachments(fileName);
+    return now.mediaCount > before.mediaCount || (now.hasName && !before.hasName);
+  }
+
+  /**
+   * 画像を貼り付け、添付が確認できるまで上限つきで再試行する。
+   * @returns {Promise<boolean>} 添付を確認できたときのみ true。
+   */
   async function attachImageInternal(inputArea, dataUrl, index) {
+    let file;
     try {
       const res = await fetch(dataUrl);
       const blob = await res.blob();
-      const file = new File([blob], `streetview_${index}.png`, {
-        type: "image/png",
-      });
-      const dataTransfer = new DataTransfer();
-      dataTransfer.items.add(file);
-      const pasteEvent = new ClipboardEvent("paste", {
-        clipboardData: dataTransfer,
-        bubbles: true,
-      });
-      const target = inputArea.querySelector(".ql-editor") || inputArea;
-      target.focus();
-      target.dispatchEvent(pasteEvent);
-      return true;
+      const type = blob.type || "image/jpeg";
+      const ext = type.split("/")[1] || "jpg";
+      file = new File([blob], `streetview_${index}.${ext}`, { type });
     } catch (e) {
+      _error("Image decode failed", e);
       return false;
     }
+
+    for (let attempt = 0; attempt < ATTACH_MAX_TRIES; attempt++) {
+      if (isStopRequested) return false;
+
+      const target = findInputArea() || inputArea;
+      const editor = target.querySelector(".ql-editor") || target;
+      const before = _snapshotAttachments(file.name);
+
+      try {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        editor.focus();
+        editor.dispatchEvent(
+          new ClipboardEvent("paste", { clipboardData: dataTransfer, bubbles: true }),
+        );
+      } catch (e) {
+        _error("Paste dispatch failed", e);
+      }
+
+      const deadline = Date.now() + ATTACH_CONFIRM_MS;
+      while (Date.now() < deadline) {
+        if (isStopRequested) return false;
+        await new Promise((r) => setTimeout(r, 250));
+        if (_isAttached(before, file.name)) return true;
+      }
+      _warn(`Attach not confirmed (attempt ${attempt + 1}/${ATTACH_MAX_TRIES}).`);
+    }
+    return false;
   }
 
   /**
@@ -457,81 +503,7 @@
 
         return;
       }
-
-      // グリッドインタラクション
-      if (request.action === GG_CONSTANTS.EVENTS.GRID_HOVER) {
-        // 既存のオレンジ色のハイライトをクリア
-        document
-          .querySelectorAll(".gg-hint-link.gg-active-amber")
-          .forEach((el) => el.classList.remove("gg-active-amber"));
-
-        if (request.imgIndex === -1) {
-          // ハードリーブ時にすべてを強制クリア
-          document
-            .querySelectorAll(".gg-hint-link.gg-active-blue")
-            .forEach((el) => el.classList.remove("gg-active-blue"));
-          currentSelected = null;
-          return;
-        }
-
-        // 一時的な選択: 別のアイテムに移動する場合は青をクリア
-        if (currentSelected) {
-          if (
-            request.imgIndex !== currentSelected.imgIndex ||
-            (request.coord && request.coord !== currentSelected.coord)
-          ) {
-            document
-              .querySelectorAll(".gg-hint-link.gg-active-blue")
-              .forEach((el) => el.classList.remove("gg-active-blue"));
-            currentSelected = null;
-          }
-        }
-
-        // ハイライトルール
-        if (request.imgIndex > 0) {
-          let selector = `.gg-hint-link[data-img-index="${request.imgIndex}"]`;
-
-          if (request.coord) {
-            // テキスト側のホバー: 1対1のマッピング (マス単体)
-            selector += `[data-coord="${request.coord}"]`;
-          }
-          // それ以外: グリッド側のホバー (coord=null) または画像全体 -> すべてハイライト
-
-          document.querySelectorAll(selector).forEach((el) => {
-            if (!el.classList.contains("gg-active-blue")) {
-              el.classList.add("gg-active-amber");
-            }
-          });
-        }
-      } else if (request.action === GG_CONSTANTS.EVENTS.GRID_CLICK) {
-        // 選択前にすべての状態をクリア
-        document
-          .querySelectorAll(
-            ".gg-hint-link.gg-active-amber, .gg-hint-link.gg-active-blue",
-          )
-          .forEach((el) => {
-            el.classList.remove("gg-active-amber", "gg-active-blue");
-          });
-
-        if (request.coord) {
-          const selector = `.gg-hint-link[data-coord="${request.coord}"][data-img-index="${request.imgIndex}"]`;
-          document.querySelectorAll(selector).forEach((el) => {
-            el.classList.add("gg-active-blue");
-          });
-          currentSelected = {
-            coord: request.coord,
-            imgIndex: request.imgIndex,
-          };
-        }
-      }
     });
   }
 
-  function cleanupObservers() {
-    if (generationObserver) {
-      generationObserver.disconnect();
-      generationObserver = null;
-    }
-    isGenerating = false;
-  }
 })();

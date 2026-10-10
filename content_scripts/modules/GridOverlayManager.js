@@ -472,12 +472,6 @@ class GridOverlayManager {
             },
           }),
         );
-
-        window.dispatchEvent(
-          new CustomEvent("GG_GRID_HOVER_ENTER", {
-            detail: { imageIndex: resolvedImgIndex },
-          }),
-        );
       };
 
       // マウスが離れた時にハイライトをクリア
@@ -489,7 +483,6 @@ class GridOverlayManager {
             detail: { coord: null, imgIndex: -1 },
           }),
         );
-        window.dispatchEvent(new CustomEvent("GG_GRID_HOVER_LEAVE"));
       };
 
       layoutWrapper.appendChild(topbar);

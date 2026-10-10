@@ -4,11 +4,10 @@ import { getActiveMapUrl } from "./bg_storage.js";
 /**
  * Gemini タブをスマートにアクティブ化または作成する内部ヘルパー。
  * 既存の Gemini タブがある場合はそれを利用し、ない場合は新規作成する。
- * データ（text）が含まれる場合は、ロード完了後に注入（CMD_INJECT_DATA）を試みる。
- * @param {Object} [data] 注入するデータ（プロンプト等）を含むオブジェクト。
+ * データの注入は Gemini ページ側(gemini.js)が読込時に finalData を読んで行う。
  * @returns {Promise<void>}
  */
-export async function _openOrActivateGemini(data) {
+export async function _openOrActivateGemini() {
   const GEMINI_APP_URL = "https://gemini.google.com/app";
   const MATCH_URL_PREFIX = "https://gemini.google.com/";
 
@@ -26,27 +25,7 @@ export async function _openOrActivateGemini(data) {
     await chrome.storage.local.set({ gg_gemini_tab_id: targetTab.id });
   }
 
-  // 3. ロード待機リスナーのセットアップ (リロード/遷移の前にセットする)
-  if (data && data.text) {
-    const listener = (tid, changeInfo, tab) => {
-      if (tid === targetTab.id && changeInfo.status === "complete") {
-        // メモ: changeInfo.status === "complete" の時点で URL チェックを厳密にしすぎると失敗することがあるため
-        // tabId が一致し、ロード完了した事実を信頼して注入を試みる。
-        chrome.tabs.onUpdated.removeListener(listener);
-        
-        // ロード完了後、わずかに待ってから送信 (500ms)
-        setTimeout(() => {
-          chrome.tabs.sendMessage(tid, {
-            action: "CMD_INJECT_DATA",
-            data: null
-          }).catch(e => {});
-        }, 500);
-      }
-    };
-    chrome.tabs.onUpdated.addListener(listener);
-  }
-
-  // 4. 強制遷移 / リロード
+  // 3. 強制遷移 / リロード
   // URLが "https://gemini.google.com/app" と完全に一致する場合のみリロード
   // それ以外 (例: "/app/12345" のような個別チャット) はルートへ遷移させて新規チャットにする
   const isExactAppRoot = targetTab.url === GEMINI_APP_URL || targetTab.url === GEMINI_APP_URL + "/";

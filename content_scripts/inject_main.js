@@ -141,33 +141,10 @@
     }
   }
 
-  function updatePov(data) {
-
-    if (!activePano) {
-      initPano(data);
-      return;
-    }
-
-    _ggPanoReadySent = false; // 新しいアングルのためにリセット
-    activePano.setPov({
-      heading: parseFloat(data.heading),
-      pitch: parseFloat(data.pitch || 0),
-    });
-
-    google.maps.event.trigger(activePano, "resize");
-
-    // タイル更新が必要な場合に備えて遅延後に準備完了を通知
-    signalPanoReady(800);
-  }
-
   // イベントリスナーの登録
 
   window.addEventListener("GG_MANUAL_INJECT", (e) => {
     if (e.detail) initPano(e.detail);
-  });
-
-  window.addEventListener("GG_UPDATE_POV", (e) => {
-    if (e.detail) updatePov(e.detail);
   });
 
   // [非推奨] ハッシュによる自動開始。現在は Bridge からの MANUAL_INJECT を待機する。

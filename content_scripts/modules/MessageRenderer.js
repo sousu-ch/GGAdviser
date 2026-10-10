@@ -372,13 +372,6 @@ class MessageRenderer {
           }),
         );
 
-        chrome.runtime.sendMessage({
-          action: GG_CONSTANTS.EVENTS.HINT_CLICK,
-          coord: coord,
-          imgIndex: imgIndex,
-          linkId: linkId,
-        });
-
         window.dispatchEvent(
           new CustomEvent("GG_SHOW_EVIDENCE_REQ", {
             detail: { coord, imgIndex, title: `Image ${imgNum}`, linkId },

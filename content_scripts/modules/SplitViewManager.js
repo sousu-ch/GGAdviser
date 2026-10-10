@@ -17,11 +17,6 @@ class SplitViewManager {
     this.gridManager = new GridOverlayManager();
     this.gameUI = new GameUI();
 
-    // GameUI からのハイライト要求を監視
-    window.addEventListener("GG_HIGHLIGHT_REQ", (e) => {
-      this.gridManager.highlightCell(e.detail.coord, e.detail.imageIndex);
-    });
-
     window.addEventListener("GG_SHOW_EVIDENCE_REQ", (e) => {
 
       // imgData に null を渡し、ストレージからの取得を強制する
@@ -36,9 +31,6 @@ class SplitViewManager {
   }
   get wideEnabled() {
     return GG_STATE.get(GG_CONSTANTS.STORAGE_KEYS.WIDE_ENABLED);
-  }
-  get quizEnabled() {
-    return GG_STATE.get(GG_CONSTANTS.STORAGE_KEYS.QUIZ_MODE);
   }
 
   /**
@@ -91,7 +83,6 @@ class SplitViewManager {
     GG_STATE.initialize({
       [GG_CONSTANTS.STORAGE_KEYS.UI_ENABLED]: true,
       [GG_CONSTANTS.STORAGE_KEYS.WIDE_ENABLED]: false,
-      [GG_CONSTANTS.STORAGE_KEYS.QUIZ_MODE]: true,
     }).then(() => {
       this.injectStylesheets();
 
@@ -124,11 +115,6 @@ class SplitViewManager {
         if (key === GG_CONSTANTS.STORAGE_KEYS.UI_ENABLED) this.applyUIState();
         if (key === GG_CONSTANTS.STORAGE_KEYS.WIDE_ENABLED)
           this.applyWideState();
-        if (key === GG_CONSTANTS.STORAGE_KEYS.QUIZ_MODE) {
-          window.dispatchEvent(
-            new CustomEvent("GG_TOGGLE_QUIZ", { detail: { enabled: value } }),
-          );
-        }
 
         // 状態を HeaderManager に伝播
         if (this.headerManager) {
@@ -148,11 +134,6 @@ class SplitViewManager {
           }
         }
       }, 1000);
-    });
-
-    // サイドバーUI切り替え要求の監視
-    window.addEventListener("GG_UI_REQ_TOGGLE_QUIZ", () => {
-      this.toggleQuiz();
     });
   }
 
@@ -579,13 +560,6 @@ class SplitViewManager {
   }
 
   /**
-   * クイズモードの状態を切り替え、設定を保存する。
-   */
-  toggleQuiz() {
-    GG_STATE.set(GG_CONSTANTS.STORAGE_KEYS.QUIZ_MODE, !this.quizEnabled);
-  }
-
-  /**
    * 現在のワイドモード状態をDOMに適用する（CSSとbodyクラスの注入）。
    */
   applyWideState() {
@@ -789,24 +763,6 @@ class SplitViewManager {
       window.dispatchEvent(new CustomEvent("GG_EXIT_CAPTURE"));
       window.dispatchEvent(new Event("resize"));
     }
-  }
-
-  /**
-   * メインマップラッパー（左側）の上に画像オーバーレイを表示する。
-   * GridOverlayManager に委譲。
-   */
-  showImageOverlay(
-    imgData,
-    coord = null,
-    title = "",
-    imgIndex = -1,
-    linkId = null,
-  ) {
-    if (!imgData) return;
-    this.ensureUIEnabled();
-
-    // GridOverlayManager へ委譲
-    this.gridManager.showOverlay(imgData, coord, title, imgIndex, linkId);
   }
 
   closeOverlay() {
