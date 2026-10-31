@@ -82,6 +82,7 @@
       }
 
       textarea,
+      select,
       input[type="text"] {
         width: 100%;
         padding: 12px;
@@ -96,6 +97,7 @@
       }
 
       textarea:focus,
+      select:focus,
       input[type="text"]:focus {
         outline: none;
         border-color: var(--primary-color);
@@ -326,7 +328,7 @@
       <div class="card" id="permission-card">
         <div class="section-header">
           <div class="section-title" style="margin-bottom: 0">
-            🔐 権限とプライバシー
+            権限とプライバシー
           </div>
         </div>
         <div class="form-group">
@@ -374,9 +376,25 @@
         </div>
       </div>
 
+      <div class="card" id="ai-service-card">
+        <div class="section-header">
+          <div class="section-title" style="margin-bottom: 0">連携する AI</div>
+        </div>
+        <div class="form-group">
+          <select id="ai-service-select">
+            <option value="gemini">Gemini (gemini.google.com)</option>
+            <option value="claude">Claude (claude.ai)</option>
+            <option value="chatgpt">ChatGPT (chatgpt.com)</option>
+          </select>
+          <p class="hint">
+            分析の結果を送る AI を選びます。選んだ AI にあらかじめログインしておいてください。
+          </p>
+        </div>
+      </div>
+
       <div class="card" id="maps-card">
         <div class="section-header">
-          <div class="section-title" style="margin-bottom: 0">📍 地図設定リスト</div>
+          <div class="section-title" style="margin-bottom: 0">地図設定リスト</div>
         </div>
         
         <!-- マップ追加フォーム -->
@@ -397,7 +415,7 @@
 
       <div class="card" id="prompts-card">
         <div class="section-header">
-          <div class="section-title" style="margin-bottom: 0">✍️ プロンプト設定リスト</div>
+          <div class="section-title" style="margin-bottom: 0">プロンプト設定リスト</div>
           <button id="reset-prompts-btn" class="btn-secondary btn-sm">
             全プロンプトを初期化
           </button>
@@ -421,7 +439,7 @@
           </div>
 
           <div class="form-group">
-            <label>Gemini プロンプト内容</label>
+            <label>プロンプト内容</label>
             <textarea id="edit-prompt-content" style="height: 250px;"></textarea>
             <p class="hint">
               利用可能なプレースホルダ: <code>{{lat}}</code>, <code>{{lng}}</code>, <code>{{date}}</code>, <code>{{url}}</code>, <code>{{address}}</code>, <code>{{guess_lat}}</code>, <code>{{guess_lng}}</code>, <code>{{userText}}</code>

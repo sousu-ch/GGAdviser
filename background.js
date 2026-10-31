@@ -6,9 +6,10 @@ import "./background/services/GridOverlayService.js";
 import { DEBUG } from "./background/modules/bg_utils.js";
 import { initStorageOnInstalled } from "./background/modules/bg_storage.js";
 import { 
-  _openOrActivateGemini, 
-  _broadcastStopToAnyGemini, 
-  handleObtainMapTitle 
+  getAiTarget,
+  _openOrActivateAi,
+  _broadcastStopToAnyAi,
+  handleObtainMapTitle
 } from "./background/modules/bg_api.js";
 import { 
   handleMapReady,
@@ -64,11 +65,11 @@ function handleMessage(request, sender, sendResponse) {
 
       case "SEND_TO_GEMINI":
         // タブの再利用とリロードなしの送信
-        const targetUrl = self.GG_CONSTANTS ? self.GG_CONSTANTS.URLS.GEMINI : "https://gemini.google.com/app";
+        const aiTarget = await getAiTarget();
         const prompt = request.prompt;
 
-        // 1. 既存の Gemini タブを見つける
-        chrome.tabs.query({ url: targetUrl + "*" }, (tabs) => {
+        // 1. 既存の AI タブを見つける
+        chrome.tabs.query({ url: aiTarget.reusePattern }, (tabs) => {
           const existingTab = tabs.length > 0 ? tabs[0] : null;
 
           if (existingTab) {
@@ -85,7 +86,7 @@ function handleMessage(request, sender, sendResponse) {
             });
           } else {
             // B. 新しいタブのロジック (フォールバック)
-            chrome.tabs.create({ url: targetUrl }, async (tab) => {
+            chrome.tabs.create({ url: aiTarget.appUrl }, async (tab) => {
               // 新しいタブの ID を追跡
               if (tab && tab.id) {
                 await chrome.storage.local.set({ gg_gemini_tab_id: tab.id });
@@ -131,8 +132,9 @@ function handleMessage(request, sender, sendResponse) {
         break;
 
       case GG_CONSTANTS.ACTIONS.STOP_GENERATION:
-        // 停止コマンドを Gemini タブにリレー
+        // 停止コマンドを AI タブにリレー
         // 最適化: 可能であれば追跡 ID を使用
+        const stopTarget = await getAiTarget();
         chrome.storage.local.get("gg_gemini_tab_id", (res) => {
           const trackedId = res.gg_gemini_tab_id;
           if (trackedId) {
@@ -141,30 +143,30 @@ function handleMessage(request, sender, sendResponse) {
                 !chrome.runtime.lastError &&
                 tab &&
                 tab.url &&
-                tab.url.includes("gemini.google.com")
+                tab.url.includes(stopTarget.host)
               ) {
                 chrome.tabs
                   .sendMessage(trackedId, { action: GG_CONSTANTS.ACTIONS.STOP_GENERATION })
                   .catch(() => {});
               } else {
                 // フォールバック: 追跡タブがない場合はクエリを実行
-                _broadcastStopToAnyGemini();
+                _broadcastStopToAnyAi();
               }
             });
           } else {
-            _broadcastStopToAnyGemini();
+            _broadcastStopToAnyAi();
           }
         });
         sendResponse({ status: "processed" });
         break;
 
       case "OPEN_GEMINI_TAB":
-        // Gemini タブを開くかフォーカスし、オリジンを保存
+        // AI タブを開くかフォーカスし、オリジンを保存
         if (tabId) {
           // 自動復帰のためにマップタブ ID をオリジンとして保存
           await chrome.storage.local.set({ gg_origin_tab_id: tabId });
         }
-        await _openOrActivateGemini();
+        await _openOrActivateAi();
         sendResponse({ status: "opening" });
         break;
 

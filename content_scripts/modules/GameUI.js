@@ -600,7 +600,7 @@ class GameUI {
 
     inputBlock.innerHTML = `
             <div class="gg-input-wrapper">
-                <textarea class="gg-input-textarea" placeholder="Ask Gemini..." rows="1"></textarea>
+                <textarea class="gg-input-textarea" placeholder="Ask AI..." rows="1"></textarea>
                 <button class="gg-send-btn">
                     <svg viewBox="0 0 24 24" style="width: 24px; height: 24px; fill: currentColor;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
                 </button>

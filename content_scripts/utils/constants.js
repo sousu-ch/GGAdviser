@@ -41,6 +41,8 @@
     },
     URLS: {
         GEMINI: "https://gemini.google.com/app",
+        CLAUDE: "https://claude.ai/new",
+        CHATGPT: "https://chatgpt.com/",
         GOOGLE_MAPS_PANO_BASE: "https://www.google.com/maps/@?api=1&map_action=pano"
     },
     EVENTS: {
@@ -87,7 +89,13 @@
         ACTIVE_PROMPT_ID: 'gg_active_prompt_id',
         UI_ENABLED: 'gg_ui_enabled',
         WIDE_ENABLED: 'gg_wide_enabled',
-        LAST_GUESS_DATA: 'ggadviser_last_guess_data'
+        LAST_GUESS_DATA: 'ggadviser_last_guess_data',
+        AI_SERVICE: 'gg_ai_service' // 'gemini' (既定) | 'claude' | 'chatgpt'
+    },
+    AI_SERVICES: {
+        GEMINI: 'gemini',
+        CLAUDE: 'claude',
+        CHATGPT: 'chatgpt'
     },
 
 

@@ -4,9 +4,11 @@
   let currentMapsList = [];
   let currentActiveMapId = null;
   let currentActivePromptId = null;
+  let currentAiService = GG_CONSTANTS.AI_SERVICES.GEMINI;
   let editingPromptId = null;
-  
+
   const keys = {
+    AI_SERVICE: GG_CONSTANTS.STORAGE_KEYS.AI_SERVICE,
     PROMPTS_LIST: GG_CONSTANTS.STORAGE_KEYS.PROMPTS_LIST,
     PROMPTS_CUSTOM: GG_CONSTANTS.STORAGE_KEYS.PROMPTS_CUSTOM,
     ACTIVE_PROMPT_ID: GG_CONSTANTS.STORAGE_KEYS.ACTIVE_PROMPT_ID,
@@ -36,13 +38,15 @@
           keys.PROMPTS_CUSTOM,
           keys.ACTIVE_PROMPT_ID,
           keys.MAPS_LIST,
-          keys.ACTIVE_MAP_ID
+          keys.ACTIVE_MAP_ID,
+          keys.AI_SERVICE
         ], (res) => {
           Debugger.log("GGStorage: Data loaded", res);
           customPrompts = res[keys.PROMPTS_CUSTOM] || {};
           currentActivePromptId = res[keys.ACTIVE_PROMPT_ID] || (typeof GG_PROMPTS !== 'undefined' && GG_PROMPTS.PRESETS.length > 0 ? GG_PROMPTS.PRESETS[0].id : null);
           currentMapsList = res[keys.MAPS_LIST] || [];
           currentActiveMapId = res[keys.ACTIVE_MAP_ID] || null;
+          currentAiService = res[keys.AI_SERVICE] || GG_CONSTANTS.AI_SERVICES.GEMINI;
           resolve(res);
         });
       });
@@ -55,7 +59,8 @@
           [keys.PROMPTS_CUSTOM]: customPrompts,
           [keys.ACTIVE_PROMPT_ID]: currentActivePromptId,
           [keys.MAPS_LIST]: currentMapsList,
-          [keys.ACTIVE_MAP_ID]: currentActiveMapId
+          [keys.ACTIVE_MAP_ID]: currentActiveMapId,
+          [keys.AI_SERVICE]: currentAiService
         }, () => {
           if (chrome.runtime.lastError) {
             Debugger.warn("GGStorage: Save failed", chrome.runtime.lastError);
@@ -194,6 +199,13 @@
     bindAll() {
       Debugger.log("EventManager: Binding all events");
       if (elements.saveBtn) elements.saveBtn.onclick = () => saveAllSettings();
+      if (elements.aiServiceSelect) {
+        elements.aiServiceSelect.value = currentAiService;
+        elements.aiServiceSelect.onchange = () => {
+          currentAiService = elements.aiServiceSelect.value;
+          saveAllSettings(true);
+        };
+      }
       if (elements.addMapBtn) elements.addMapBtn.onclick = handleAddMap;
       if (elements.showAddPromptBtn) elements.showAddPromptBtn.onclick = () => UIHandler.openEditForm(null);
       if (elements.cancelEditBtn) elements.cancelEditBtn.onclick = UIHandler.closeEditForm;
@@ -261,6 +273,9 @@
    */
   function init() {
     elements = {
+      // AI
+      aiServiceSelect: document.getElementById("ai-service-select"),
+
       // Maps
       newMapUrl: document.getElementById("new-map-url"),
       addMapBtn: document.getElementById("add-map-btn"),

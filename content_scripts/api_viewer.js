@@ -175,7 +175,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       ui.gameUI.setWaitingState(false);
       window.ToastManager.show(
         "Recovery",
-        "Geminiタブが閉じられたため、入力を復旧しました。",
+        "AIのタブが閉じられたため、入力を復旧しました。",
         "warning",
       );
     }

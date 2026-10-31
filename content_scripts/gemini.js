@@ -75,7 +75,10 @@
   function checkStorageOnceOnStart() {
     if (!chrome || !chrome.storage || !chrome.storage.local) return;
 
-    chrome.storage.local.get(GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA, (res) => {
+    chrome.storage.local.get([GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA, GG_CONSTANTS.STORAGE_KEYS.AI_SERVICE], (res) => {
+      // 連携先が Gemini 以外のときは、その AI 側のスクリプトが注入するため何もしない (未設定は Gemini)
+      const service = res && res[GG_CONSTANTS.STORAGE_KEYS.AI_SERVICE];
+      if (service && service !== GG_CONSTANTS.AI_SERVICES.GEMINI) return;
       if (res && res[GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA]) {
         const data = res[GG_CONSTANTS.STORAGE_KEYS.FINAL_DATA];
         // 保存時刻が無い(旧版のデータ)または期限切れなら、注入せずに捨てる
